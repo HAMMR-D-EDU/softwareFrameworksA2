@@ -1,0 +1,66 @@
+{
+  "users": [
+    {
+      "id": "u_1",
+      "username": "super",
+      "password": "123",
+      "email": "",
+      "roles": [
+        "super",
+        "super_admin"
+      ],
+      "groups": []
+    },
+    {
+      "id": "u_2",
+      "username": "1",
+      "password": "123",
+      "email": "",
+      "roles": [
+        "user",
+        "groupAdmin"
+      ],
+      "groups": []
+    },
+    {
+      "id": "u_3",
+      "username": "2",
+      "password": "123",
+      "email": "",
+      "roles": [
+        "user"
+      ],
+      "groups": []
+    }
+  ],
+  "groups": [
+    {
+      "id": "g_1",
+      "name": "ss",
+      "ownerId": "u_1",
+      "creatorId": "u_1",
+      "memberIds": [
+        "u_1",
+        "u_2"
+      ],
+      "adminIds": [
+        "u_1",
+        "u_2"
+      ]
+    }
+  ],
+  "channels": [
+    {
+      "id": "c_1",
+      "name": "ss",
+      "groupId": "g_1",
+      "creatorId": "u_1",
+      "bannedUserIds": [],
+      "memberIds": [
+        "u_1"
+      ]
+    }
+  ],
+  "groupInterests": [],
+  "reports": []
+}
