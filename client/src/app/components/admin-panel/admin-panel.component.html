@@ -1,0 +1,126 @@
+<main role="main">
+  <!-- Header Section -->
+  <section class="jumbotron">
+    <div class="container">
+      <h1 class="jumbotron-heading">Admin Panel</h1>
+      <p class="lead">Manage users, roles, and system reports</p>
+    </div>
+  </section>
+
+  <!-- Content Section -->
+  <div class="content-section py-5">
+    <div class="container">
+      <div class="row">
+        <!-- Left Column -->
+        <div class="col-md-8">
+          <!-- Create User Card -->
+          <div class="card mb-4" *ngIf="isSuperAdmin()">
+            <div class="card-header">
+              <h5 class="mb-0">Create New User</h5>
+            </div>
+            <div class="card-body">
+              <!-- Create User Form -->
+              <form (ngSubmit)="createUser()" class="create-user-form">
+                <div class="mb-3">
+                  <label class="form-label">Username</label>
+                  <input class="form-control" [(ngModel)]="newUsername" name="newUsername" required>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Email (optional)</label>
+                  <input class="form-control" [(ngModel)]="newEmail" name="newEmail" type="email">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Password (optional, default 123)</label>
+                  <input class="form-control" [(ngModel)]="newPassword" name="newPassword" type="text" placeholder="123">
+                </div>
+                <button class="btn btn-create" type="submit">
+                  <i class="fas fa-user-plus pe-2"></i>Create User
+                </button>
+              </form>
+
+              <!-- Messages -->
+              <div *ngIf="adminError" class="alert alert-danger mt-3">{{ adminError }}</div>
+              <div *ngIf="adminSuccess" class="alert alert-success mt-3">{{ adminSuccess }}</div>
+            </div>
+          </div>
+
+          <!-- All Users Card -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">All Users</h5>
+            </div>
+            <div class="card-body">
+              <div class="user-list">
+                <div *ngIf="users.length === 0" class="text-center text-muted py-4">
+                  No users found.
+                </div>
+                <div *ngFor="let user of users" class="user-item">
+                  <div class="user-info">
+                    <h6 class="user-name">{{ user.username }}</h6>
+                    <small class="user-details">
+                      ID: {{ user.id }} | 
+                      Roles: {{ user.roles.join(', ') }} | 
+                      Groups: {{ user.groups.length }}
+                    </small>
+                  </div>
+                  <div class="user-actions" *ngIf="!isTargetSuper(user)">
+                    <button 
+                      *ngIf="isSuperAdmin()" 
+                      class="btn btn-action btn-promote" 
+                      (click)="promoteToSuperAdmin(user.id)">
+                      <i class="fas fa-crown pe-1"></i>Super Admin
+                    </button>
+                    <button 
+                      *ngIf="isSuperAdmin() && user.id !== currentUser?.id" 
+                      class="btn btn-action btn-delete" 
+                      (click)="removeUser(user.id)">
+                      <i class="fas fa-trash pe-1"></i>Delete
+                    </button>
+                    <button 
+                      *ngIf="isSuperAdmin() && !hasGroupAdmin(user)" 
+                      class="btn btn-action btn-group-admin" 
+                      (click)="toggleGroupAdmin(user.id, true)">
+                      <i class="fas fa-user-shield pe-1"></i>Group Admin
+                    </button>
+                    <button 
+                      *ngIf="isSuperAdmin() && hasGroupAdmin(user)" 
+                      class="btn btn-action btn-demote" 
+                      (click)="toggleGroupAdmin(user.id, false)">
+                      <i class="fas fa-level-down-alt pe-1"></i>Demote
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column - Reports Card -->
+        <div class="col-md-4" *ngIf="isSuperAdmin()">
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Reports from Group Admins</h5>
+            </div>
+            <div class="card-body">
+              <div *ngIf="reports.length === 0" class="text-center text-muted py-4">
+                No reports found.
+              </div>
+              <div *ngFor="let report of reports" class="report-item">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <h6 class="report-subject">{{ report.subject }}</h6>
+                  <span class="badge badge-status">{{ report.status }}</span>
+                </div>
+                <p class="report-message">{{ report.message }}</p>
+                <small class="report-meta">
+                  <i class="fas fa-tag pe-1"></i>{{ report.type }} | 
+                  <i class="fas fa-clock pe-1"></i>{{ report.timestamp | date:'short' }}
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+

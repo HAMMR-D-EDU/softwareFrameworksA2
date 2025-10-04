@@ -1,0 +1,295 @@
+<div class="group-detail-container">
+  <div class="content container-fluid bootstrap snippets bootdey">
+    <!-- Group Header -->
+    <div class="group-header">
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-back" (click)="goBack()" title="Back to Dashboard">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <div>
+            <h2 class="mb-0">{{ group?.name || 'Loading...' }}</h2>
+            <small class="text-muted">{{ getUserRole() }}</small>
+          </div>
+        </div>
+        <div class="d-flex gap-2">
+          <button 
+            class="btn btn-outline-primary" 
+            (click)="showMembersModal = true">
+            <i class="fas fa-users pe-2"></i>View Members
+          </button>
+          <button 
+            *ngIf="canDeleteGroup()" 
+            class="btn btn-outline-danger" 
+            (click)="deleteGroup()">
+            <i class="fas fa-trash pe-2"></i>Delete Group
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Messages (Success/Error) -->
+    <div *ngIf="channelSuccess" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+      <i class="fas fa-check-circle pe-2"></i>{{ channelSuccess }}
+      <button type="button" class="btn-close" (click)="channelSuccess = ''" aria-label="Close"></button>
+    </div>
+    <div *ngIf="channelError" class="alert alert-danger alert-dismissible fade show mb-3" role="alert">
+      <i class="fas fa-exclamation-circle pe-2"></i>{{ channelError }}
+      <button type="button" class="btn-close" (click)="channelError = ''" aria-label="Close"></button>
+    </div>
+
+    <!-- Pending Join Requests -->
+    <div *ngIf="canManageRequests() && interests.length > 0" class="pending-requests-section">
+      <div class="card">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-user-clock pe-2"></i>Pending Join Requests ({{ interests.length }})</h6>
+        </div>
+        <div class="card-body">
+          <div class="d-flex gap-3 flex-wrap">
+            <div *ngFor="let interest of interests" class="request-item">
+              <div class="request-info">
+                <strong>{{ interest.user?.username || interest.userId }}</strong>
+                <small class="text-muted d-block">{{ interest.timestamp | date:'short' }}</small>
+              </div>
+              <div class="request-actions">
+                <button class="btn btn-sm btn-success" (click)="approveInterest(interest.id)">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button class="btn btn-sm btn-danger" (click)="rejectInterest(interest.id)">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="requestError" class="alert alert-danger mt-2 mb-0">{{ requestError }}</div>
+          <div *ngIf="requestSuccess" class="alert alert-success mt-2 mb-0">{{ requestSuccess }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div class="row row-broken">
+      <!-- Left Sidebar - Channels -->
+      <div class="col-sm-3 col-xs-12">
+        <div class="col-inside-lg decor-default chat-sidebar" tabindex="5000">
+          <div class="chat-users">
+            <h6>Channels</h6>
+            
+            <!-- Channel List -->
+            <div *ngIf="channels.length === 0" class="text-muted text-center py-3">
+              <small>No channels yet</small>
+            </div>
+            
+            <div *ngFor="let channel of channels" 
+                 class="user channel-item" 
+                 [class.selected]="selectedChannel?.id === channel.id"
+                 [class.banned]="isBannedFromChannel(channel)"
+                 (click)="selectChannel(channel)">
+              <div class="name">{{ channel.name }}</div>
+              <div class="mood">
+                <span *ngIf="!isBannedFromChannel(channel)">Click to view</span>
+                <span *ngIf="isBannedFromChannel(channel)" class="text-danger">Access Denied</span>
+              </div>
+            </div>
+
+            <!-- Sidebar Actions -->
+            <div class="sidebar-actions">
+              <button 
+                *ngIf="canCreateChannels()" 
+                class="btn btn-sidebar btn-create" 
+                (click)="showCreateChannelModal = true">
+                <i class="fas fa-plus pe-2"></i>Create Channel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Side - Channel Content -->
+      <div class="col-sm-9 col-xs-12 chat" tabindex="5001">
+        <div class="col-inside-lg decor-default">
+          <div class="chat-body">
+            <!-- Channel Actions Bar -->
+            <div class="channel-actions-bar" *ngIf="selectedChannel">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"># {{ selectedChannel.name }}</h6>
+                <div class="d-flex gap-2">
+                  <button 
+                    *ngIf="canBanUsers(selectedChannel)" 
+                    class="btn btn-sm btn-warning" 
+                    (click)="openBanForm(selectedChannel)">
+                    <i class="fas fa-ban pe-1"></i>Ban User
+                  </button>
+                  <button 
+                    *ngIf="canDeleteChannels()" 
+                    class="btn btn-sm btn-danger" 
+                    (click)="deleteChannel(selectedChannel.id)">
+                    <i class="fas fa-trash pe-1"></i>Delete Channel
+                  </button>
+                  <button 
+                    *ngIf="!canBanUsers(selectedChannel) && !canDeleteChannels()" 
+                    class="btn btn-sm btn-outline-secondary" 
+                    (click)="goBack()">
+                    <i class="fas fa-sign-out-alt pe-1"></i>Leave
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- No Channel Selected -->
+            <div *ngIf="!selectedChannel" class="no-channel-selected">
+              <div class="text-center">
+                <i class="fas fa-comments fa-4x mb-3 text-muted"></i>
+                <h4>Welcome to {{ group?.name }}</h4>
+                <p class="text-muted">Select a channel from the left sidebar to start viewing messages</p>
+                <button 
+                  *ngIf="canCreateChannels() && channels.length === 0" 
+                  class="btn btn-primary" 
+                  (click)="showCreateChannelModal = true">
+                  <i class="fas fa-plus pe-2"></i>Create Your First Channel
+                </button>
+              </div>
+            </div>
+
+            <!-- Channel Selected - Placeholder for Chat -->
+            <div *ngIf="selectedChannel && !isBannedFromChannel(selectedChannel)" class="channel-content">
+              <div class="text-center py-5">
+                <i class="fas fa-message fa-3x mb-3 text-muted"></i>
+                <h5>Channel: {{ selectedChannel.name }}</h5>
+                <p class="text-muted">Chat functionality will be implemented here</p>
+                <small class="text-muted d-block mt-3">
+                  <i class="fas fa-info-circle pe-1"></i>Messages, file sharing, and real-time chat coming soon
+                </small>
+              </div>
+            </div>
+
+            <!-- Banned from Channel -->
+            <div *ngIf="selectedChannel && isBannedFromChannel(selectedChannel)" class="channel-banned">
+              <div class="text-center py-5">
+                <i class="fas fa-ban fa-3x mb-3 text-danger"></i>
+                <h5>Access Denied</h5>
+                <p class="text-muted">You have been banned from this channel</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Channel Modal -->
+<div *ngIf="showCreateChannelModal" class="modal-backdrop" (click)="showCreateChannelModal = false">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Create New Channel</h5>
+        <button type="button" class="btn-close" (click)="showCreateChannelModal = false" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form (ngSubmit)="createChannel()" id="createChannelForm">
+          <div class="mb-3">
+            <label class="form-label">Channel Name</label>
+            <input class="form-control" [(ngModel)]="newChannelName" name="channelName" required placeholder="e.g., general, announcements">
+          </div>
+          <div *ngIf="channelError" class="alert alert-danger">{{ channelError }}</div>
+          <div *ngIf="channelSuccess" class="alert alert-success">{{ channelSuccess }}</div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showCreateChannelModal = false">Cancel</button>
+        <button type="submit" form="createChannelForm" class="btn btn-primary">
+          <i class="fas fa-plus pe-2"></i>Create Channel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- View Members Modal -->
+<div *ngIf="showMembersModal" class="modal-backdrop" (click)="showMembersModal = false">
+  <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Group Members</h5>
+        <button type="button" class="btn-close" (click)="showMembersModal = false" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="groupMembers.length === 0" class="text-muted text-center py-3">
+          No members found.
+        </div>
+        <div class="members-list">
+          <div *ngFor="let member of groupMembers" class="member-item">
+            <div class="member-info">
+              <div class="member-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="member-details">
+                <strong>{{ member.username }}</strong>
+                <br>
+                <small class="text-muted">{{ member.roles.join(', ') }}</small>
+                <span *ngIf="isGroupAdmin(member.id)" class="badge bg-warning ms-2">Group Admin</span>
+              </div>
+            </div>
+            <div class="member-actions">
+              <button 
+                *ngIf="canPromoteToGroupAdmin(member.id)" 
+                class="btn btn-sm btn-outline-warning" 
+                (click)="promoteToGroupAdmin(member.id)">
+                <i class="fas fa-arrow-up pe-1"></i>Promote
+              </button>
+              <button 
+                *ngIf="canReportUser(member)" 
+                class="btn btn-sm btn-outline-secondary" 
+                (click)="reportUser(member.id)">
+                <i class="fas fa-flag pe-1"></i>Report
+              </button>
+              <button 
+                *ngIf="canRemoveUsers() && member.id !== currentUser?.id && !isSuperUser(member)" 
+                class="btn btn-sm btn-outline-danger" 
+                (click)="removeUserFromGroup(member.id)">
+                <i class="fas fa-user-minus pe-1"></i>Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showMembersModal = false">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Ban User Modal -->
+<div *ngIf="showBanForm" class="modal-backdrop" (click)="cancelBan()">
+  <div class="modal-dialog" (click)="$event.stopPropagation()">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Ban User from {{ selectedChannel?.name }}</h5>
+        <button type="button" class="btn-close" (click)="cancelBan()" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form (ngSubmit)="banUser()" id="banUserForm">
+          <div class="mb-3">
+            <label class="form-label">Select User to Ban</label>
+            <select class="form-select" [(ngModel)]="selectedUserId" name="userId" required>
+              <option value="">Choose a user...</option>
+              <option *ngFor="let member of groupMembers" [value]="member.id">
+                {{ member.username }}
+              </option>
+            </select>
+          </div>
+          <div *ngIf="banError" class="alert alert-danger">{{ banError }}</div>
+          <div *ngIf="banSuccess" class="alert alert-success">{{ banSuccess }}</div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="cancelBan()">Cancel</button>
+        <button type="submit" form="banUserForm" class="btn btn-warning">
+          <i class="fas fa-ban pe-2"></i>Ban User
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

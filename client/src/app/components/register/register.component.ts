@@ -1,36 +1,16 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-register',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  template: `
-    <div class="container py-4">
-      <h1 class="mb-3">Register</h1>
-      <form (ngSubmit)="submit()" class="vstack gap-3">
-        <div>
-          <label class="form-label">Username</label>
-          <input class="form-control" name="username" [(ngModel)]="username" required>
-        </div>
-        <div>
-          <label class="form-label">Password</label>
-          <input class="form-control" type="password" name="password" [(ngModel)]="password" required>
-        </div>
-        <div>
-          <label class="form-label">Email (Optional)</label>
-          <input class="form-control" type="email" name="email" [(ngModel)]="email">
-        </div>
-        <button class="btn btn-primary" type="submit">Register</button>
-        <div class="text-danger">{{ error }}</div>
-        <div class="text-success">{{ success }}</div>
-      </form>
-    </div>
-  `,
+  imports: [CommonModule, FormsModule, RouterModule],
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.css']
 })
 export class RegisterComponent {
   username = '';

@@ -31,6 +31,16 @@
         "user"
       ],
       "groups": []
+    },
+    {
+      "id": "u_4",
+      "username": "hhhh",
+      "password": "1234",
+      "email": "",
+      "roles": [
+        "user"
+      ],
+      "groups": []
     }
   ],
   "groups": [
@@ -40,12 +50,22 @@
       "ownerId": "u_1",
       "creatorId": "u_1",
       "memberIds": [
-        "u_1",
-        "u_2"
+        "u_1"
       ],
       "adminIds": [
-        "u_1",
-        "u_2"
+        "u_1"
+      ]
+    },
+    {
+      "id": "g_2",
+      "name": "sss",
+      "ownerId": "u_1",
+      "creatorId": "u_1",
+      "memberIds": [
+        "u_1"
+      ],
+      "adminIds": [
+        "u_1"
       ]
     }
   ],
@@ -53,6 +73,16 @@
     {
       "id": "c_1",
       "name": "ss",
+      "groupId": "g_1",
+      "creatorId": "u_1",
+      "bannedUserIds": [],
+      "memberIds": [
+        "u_1"
+      ]
+    },
+    {
+      "id": "c_2",
+      "name": "aaaa",
       "groupId": "g_1",
       "creatorId": "u_1",
       "bannedUserIds": [],

@@ -6,7 +6,7 @@ const app = express();
 
 // Middleware
 app.use(cors());           // allow :4200 → :3000 during dev
-app.use(express.json());   // parse JSON bodies
+app.use(express.json());   // parse JSON bodies automatically
 
 // Load data on startup
 loadDataFromDisk();

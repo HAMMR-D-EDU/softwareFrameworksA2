@@ -22,7 +22,7 @@ function loadDataFromDisk() {
     const raw = fs.readFileSync(DATA_FILE, 'utf-8');
     if (!raw) return;
     const parsed = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object') {
+    if (parsed && typeof parsed === 'object') { //validation checks to ensure the data is in the correct format (array)
       if (Array.isArray(parsed.users)) data.users = parsed.users;
       if (Array.isArray(parsed.groups)) data.groups = parsed.groups;
       if (Array.isArray(parsed.channels)) data.channels = parsed.channels;

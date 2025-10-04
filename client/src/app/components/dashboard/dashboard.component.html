@@ -1,0 +1,80 @@
+<main role="main">
+  <!-- Header Section -->
+  <section class="jumbotron">
+    <div class="container">
+      <h1 class="jumbotron-heading">Welcome, {{ user?.username }}!</h1>
+      <p class="lead text-muted">Role: {{ getPrimaryRole() }}</p>
+      <div *ngIf="groupSuccess" class="alert alert-success mt-3">{{ groupSuccess }}</div>
+    </div>
+  </section>
+  
+  <!-- My Groups Section -->
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <h3>My Groups</h3>
+      <button *ngIf="canCreateGroups()" class="btn btn-primary" (click)="showCreateGroup = true">
+        Create Group
+      </button>
+    </div>
+    <div class="separator"></div>
+  </div>
+
+  <!-- Create Group Modal -->
+  <div *ngIf="showCreateGroup" class="modal-backdrop" (click)="showCreateGroup = false">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Create New Group</h5>
+          <button type="button" class="btn-close" (click)="showCreateGroup = false" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form (ngSubmit)="createGroup()" id="createGroupForm">
+            <div class="mb-3">
+              <label class="form-label">Group Name</label>
+              <input class="form-control" [(ngModel)]="newGroupName" name="groupName" required>
+            </div>
+            <div *ngIf="groupError" class="alert alert-danger">{{ groupError }}</div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showCreateGroup = false">Cancel</button>
+          <button type="submit" form="createGroupForm" class="btn btn-primary">Create Group</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Groups Album -->
+  <div class="album py-5">
+    <div class="container">
+      <div *ngIf="groups.length === 0" class="text-center text-muted py-5">
+        <h4>No groups yet.</h4>
+        <p>{{ canCreateGroups() ? 'Create your first group!' : 'Ask a group admin to add you to a group.' }}</p>
+      </div>
+
+      <div class="row">
+        <div class="col-md-4" *ngFor="let group of groups">
+          <div class="card mb-4 box-shadow">
+            <div class="card-body">
+              <h5 class="card-title">{{ group.name }}</h5>
+              <p class="card-text text-muted">
+                Members: {{ group.memberIds.length }} | Admins: {{ group.adminIds.length }}
+              </p>
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="btn-group">
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="viewGroup(group.id)">
+                    View
+                  </button>
+                  <button *ngIf="!isSuperAdmin()" type="button" class="btn btn-sm btn-outline-secondary" (click)="leaveGroup(group.id)">
+                    Leave
+                  </button>
+                </div>
+                <small class="text-muted">ID: {{ group.id }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>

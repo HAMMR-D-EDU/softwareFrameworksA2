@@ -9,198 +9,8 @@ import { ApiService, Group, Channel } from '../../services/api.service';
   selector: 'app-group-detail',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <div class="container py-4">
-      <div class="row">
-        <div class="col-md-8">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h1>{{ group?.name || 'Loading...' }}</h1>
-            <div class="d-flex gap-2">
-              <button *ngIf="canDeleteGroup()" class="btn btn-outline-danger" (click)="deleteGroup()">
-                Delete Group
-              </button>
-              <button class="btn btn-outline-secondary" (click)="goBack()">Back to Dashboard</button>
-            </div>
-          </div>
-
-          <!-- Group Info -->
-          <div class="card mb-4">
-            <div class="card-header">
-              <h5 class="mb-0">Group Information</h5>
-            </div>
-            <div class="card-body">
-              <div *ngIf="!group" class="text-muted">Loading group information...</div>
-              <div *ngIf="group">
-                <p><strong>Group ID:</strong> {{ group.id }}</p>
-                <p><strong>Members:</strong> {{ group.memberIds.length }}</p>
-                <p><strong>Admins:</strong> {{ group.adminIds.length }}</p>
-                <p><strong>Your Role:</strong> {{ getUserRole() }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Channels -->
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Channels</h5>
-              <button *ngIf="canCreateChannels()" class="btn btn-primary btn-sm" (click)="showCreateChannel = true">
-                Create Channel
-              </button>
-            </div>
-            <div class="card-body">
-              <div *ngIf="channels.length === 0" class="text-muted">
-                No channels yet. {{ canCreateChannels() ? 'Create your first channel!' : 'Ask a group admin to create a channel.' }}
-              </div>
-              <div *ngFor="let channel of channels" class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                <div>
-                  <h6 class="mb-1">{{ channel.name }}</h6>
-                  <small class="text-muted">
-                    ID: {{ channel.id }} | 
-                    Banned Users: {{ channel.bannedUserIds.length }}
-                  </small>
-                </div>
-                <div class="d-flex gap-2">
-                  <button 
-                    *ngIf="!isBannedFromChannel(channel)" 
-                    class="btn btn-outline-primary btn-sm" 
-                    (click)="viewChannel(channel.id)">
-                    View Channel
-                  </button>
-                  <span *ngIf="isBannedFromChannel(channel)" class="text-danger">
-                    Access Denied
-                  </span>
-                  <button 
-                    *ngIf="canBanUsers(channel)" 
-                    class="btn btn-outline-warning btn-sm" 
-                    (click)="openBanForm(channel)">
-                    Ban User
-                  </button>
-                  <button 
-                    *ngIf="canDeleteChannels()" 
-                    class="btn btn-outline-danger btn-sm" 
-                    (click)="deleteChannel(channel.id)">
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Create Channel Form -->
-          <div *ngIf="showCreateChannel" class="card mt-4">
-            <div class="card-header">
-              <h5 class="mb-0">Create New Channel</h5>
-            </div>
-            <div class="card-body">
-              <form (ngSubmit)="createChannel()" class="vstack gap-3">
-                <div>
-                  <label class="form-label">Channel Name</label>
-                  <input class="form-control" [(ngModel)]="newChannelName" name="channelName" required>
-                </div>
-                <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-primary">Create Channel</button>
-                  <button type="button" class="btn btn-secondary" (click)="showCreateChannel = false">Cancel</button>
-                </div>
-                <div *ngIf="channelError" class="text-danger">{{ channelError }}</div>
-                <div *ngIf="channelSuccess" class="text-success">{{ channelSuccess }}</div>
-              </form>
-            </div>
-          </div>
-
-          <!-- Pending Join Requests (Group Admins) -->
-          <div *ngIf="canManageRequests()" class="card mt-4">
-            <div class="card-header">
-              <h5 class="mb-0">Pending Join Requests</h5>
-            </div>
-            <div class="card-body">
-              <div *ngIf="interests.length === 0" class="text-muted">No pending requests.</div>
-              <div *ngFor="let interest of interests" class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                <div>
-                  <div><strong>Request ID:</strong> {{ interest.id }}</div>
-                  <small class="text-muted">User: {{ interest.user?.username || interest.userId }} | {{ interest.timestamp }}</small>
-                </div>
-                <div class="d-flex gap-2">
-                  <button class="btn btn-success btn-sm" (click)="approveInterest(interest.id)">Approve</button>
-                  <button class="btn btn-outline-danger btn-sm" (click)="rejectInterest(interest.id)">Reject</button>
-                </div>
-              </div>
-              <div *ngIf="requestError" class="text-danger">{{ requestError }}</div>
-              <div *ngIf="requestSuccess" class="text-success">{{ requestSuccess }}</div>
-            </div>
-          </div>
-
-          <!-- Ban User Form -->
-          <div *ngIf="showBanForm" class="card mt-4">
-            <div class="card-header">
-              <h5 class="mb-0">Ban User from {{ selectedChannel?.name }}</h5>
-            </div>
-            <div class="card-body">
-              <form (ngSubmit)="banUser()" class="vstack gap-3">
-                <div>
-                  <label class="form-label">Select User to Ban</label>
-                  <select class="form-select" [(ngModel)]="selectedUserId" name="userId" required>
-                    <option value="">Choose a user...</option>
-                    <option *ngFor="let member of groupMembers" [value]="member.id">
-                      {{ member.username }}
-                    </option>
-                  </select>
-                </div>
-                <div class="d-flex gap-2">
-                  <button type="submit" class="btn btn-warning">Ban User</button>
-                  <button type="button" class="btn btn-secondary" (click)="cancelBan()">Cancel</button>
-                </div>
-                <div *ngIf="banError" class="text-danger">{{ banError }}</div>
-                <div *ngIf="banSuccess" class="text-success">{{ banSuccess }}</div>
-              </form>
-            </div>
-          </div>
-
-
-        </div>
-        
-        <div class="col-md-4">
-          <div class="card">
-            <div class="card-header">
-              <h5 class="mb-0">Group Members</h5>
-            </div>
-            <div class="card-body">
-              <div *ngIf="groupMembers.length === 0" class="text-muted">
-                No members found.
-              </div>
-              <div *ngFor="let member of groupMembers" class="d-flex justify-content-between align-items-center mb-2">
-                <div>
-                  <strong>{{ member.username }}</strong>
-                  <br>
-                  <small class="text-muted">{{ member.roles.join(', ') }}</small>
-                </div>
-                <div class="d-flex gap-2 align-items-center">
-                  <span *ngIf="isGroupAdmin(member.id)" class="badge bg-warning">Admin</span>
-                  <button 
-                    *ngIf="canPromoteToGroupAdmin(member.id)" 
-                    class="btn btn-outline-warning btn-sm" 
-                    (click)="promoteToGroupAdmin(member.id)">
-                    Promote to Admin
-                  </button>
-                  <button 
-                    *ngIf="canReportUser(member)" 
-                    class="btn btn-outline-secondary btn-sm" 
-                    (click)="reportUser(member.id)">
-                    Report User
-                  </button>
-                  <button 
-                    *ngIf="canRemoveUsers() && member.id !== currentUser?.id && !isSuperUser(member)" 
-                    class="btn btn-outline-danger btn-sm" 
-                    (click)="removeUserFromGroup(member.id)">
-                    Remove
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `,
+  templateUrl: './group-detail.component.html',
+  styleUrls: ['./group-detail.component.css']
 })
 export class GroupDetailComponent implements OnInit {
   groupId = '';
@@ -210,7 +20,8 @@ export class GroupDetailComponent implements OnInit {
   currentUser: User | null = null;
   interests: any[] = [];
   
-  showCreateChannel = false;
+  showCreateChannelModal = false;
+  showMembersModal = false;
   newChannelName = '';
   channelError = '';
   channelSuccess = '';
@@ -311,9 +122,11 @@ export class GroupDetailComponent implements OnInit {
       next: (channel) => {
         this.channelSuccess = 'Channel created successfully!';
         this.newChannelName = '';
-        this.showCreateChannel = false;
+        this.showCreateChannelModal = false;
         this.loadChannels(); // Reload channels
-        setTimeout(() => this.channelSuccess = '', 3000);
+        setTimeout(() => {
+          this.channelSuccess = '';
+        }, 3000);
       },
       error: (error) => {
         this.channelError = error.error?.msg || 'Failed to create channel';
@@ -321,8 +134,10 @@ export class GroupDetailComponent implements OnInit {
     });
   }
 
-  viewChannel(channelId: string) {
-    this.router.navigate(['/group', this.groupId, 'channel', channelId]);
+  selectChannel(channel: Channel) {
+    if (!this.isBannedFromChannel(channel)) {
+      this.selectedChannel = channel;
+    }
   }
 
   openBanForm(channel: Channel) {
@@ -498,20 +313,36 @@ export class GroupDetailComponent implements OnInit {
   }
 
   deleteChannel(channelId: string) {
-    if (!this.currentUser) return;
+    if (!this.currentUser || !this.group) {
+      this.channelError = 'User or group not found';
+      return;
+    }
     
     const channel = this.channels.find(c => c.id === channelId);
-    if (!channel) return;
+    if (!channel) {
+      this.channelError = 'Channel not found';
+      return;
+    }
     
     if (confirm(`Are you sure you want to delete the channel "${channel.name}"? This action cannot be undone.`)) {
-      this.api.removeChannel(channelId, this.currentUser.id).subscribe({
+      this.api.removeChannel(channelId, this.currentUser.id, this.group.id).subscribe({
         next: (result) => {
           this.channelSuccess = 'Channel deleted successfully!';
+          // Clear selected channel if it was the one deleted
+          if (this.selectedChannel?.id === channelId) {
+            this.selectedChannel = null;
+          }
           this.loadChannels(); // Reload channels
-          setTimeout(() => this.channelSuccess = '', 3000);
+          setTimeout(() => {
+            this.channelSuccess = '';
+          }, 3000);
         },
         error: (error) => {
+          console.error('Delete channel error:', error);
           this.channelError = error.error?.msg || 'Failed to delete channel';
+          setTimeout(() => {
+            this.channelError = '';
+          }, 5000);
         }
       });
     }

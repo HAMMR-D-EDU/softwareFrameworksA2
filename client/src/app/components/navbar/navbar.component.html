@@ -1,0 +1,54 @@
+<!-- Navbar taken from https://mdbootstrap.com/snippets/standard/mdbootstrap/2948963?view=side -->
+<nav class="navbar navbar-expand-lg fixed-top navbar-dark navbar-purple">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" routerLink="/">
+      <img id="a2-logo"
+        src="assets/images/a2-logo.png" 
+        alt="MACRO-HARD Teams Logo"
+        draggable="false" height="60" />
+      <span class="ms-2 brand-text">MICRO-SOFT TEAMS</span>
+    </a>
+    
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <i class="fas fa-bars"></i>
+    </button>
+    
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <!-- Center menu items -->
+      <ul class="navbar-nav mx-auto align-items-center center-nav">
+        <!-- Not logged in -->
+        <li *ngIf="!user" class="nav-item">
+          <a class="nav-link mx-2" routerLink="/register" routerLinkActive="active"><i class="fas fa-user-plus pe-2"></i>Register</a>
+        </li>
+        
+        <!-- Logged in -->
+        <li *ngIf="user" class="nav-item">
+          <a class="nav-link mx-2" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}"><i class="fas fa-home pe-2"></i>Dashboard</a>
+        </li>
+        <li *ngIf="user && isSuperAdmin()" class="nav-item">
+          <a class="nav-link mx-2" routerLink="/admin" routerLinkActive="active"><i class="fas fa-user-shield pe-2"></i>Admin Panel</a>
+        </li>
+      </ul>
+      
+      <!-- Right side buttons -->
+      <ul class="navbar-nav ms-auto align-items-center">
+        <li *ngIf="!user" class="nav-item">
+          <a class="btn btn-purple btn-rounded" routerLink="/login" routerLinkActive="active-btn">Sign in</a>
+        </li>
+        <li *ngIf="user" class="nav-item me-3">
+          <span class="navbar-text user-info">
+            <i class="fas fa-user pe-2"></i>{{ user.username }}
+          </span>
+        </li>
+        <li *ngIf="user" class="nav-item">
+          <button class="btn btn-purple btn-rounded" (click)="logout()">
+            <i class="fas fa-sign-out-alt pe-2"></i>Logout
+          </button>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+<!-- Navbar -->
+

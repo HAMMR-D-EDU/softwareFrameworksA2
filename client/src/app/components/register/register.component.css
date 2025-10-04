@@ -1,0 +1,95 @@
+/* Register component styles */
+/* tempalte taken https://bbbootstrap.com/snippets/bootstrap-login-form-social-buttons-43836301*/
+
+:host {
+  display: block;
+  background-color: #e8e0f5;
+  min-height: calc(100vh - 90px);
+}
+
+.card {
+  border: none;
+  border-top: 5px solid rgb(176, 106, 252);
+  background: #212042;
+  color: #57557A;
+}
+
+p {
+  font-weight: 600;
+  font-size: 15px;
+  color: #ffffff;
+}
+
+.myform {
+  padding: 0 25px 0 33px;
+}
+
+.form-control {
+  border: 1px solid #57557A;
+  border-radius: 3px;
+  background: #212042;
+  margin-bottom: 20px;
+  letter-spacing: 1px;
+  color: #fff;
+}
+
+.form-control::placeholder {
+  color: #57557A;
+}
+
+.form-control:focus {
+  border: 1px solid rgb(176, 106, 252);
+  border-radius: 3px;
+  box-shadow: none;
+  background: #212042;
+  color: #fff;
+  letter-spacing: 1px;
+}
+
+.bn {
+  text-decoration: underline;
+  color: rgb(176, 106, 252);
+}
+
+.bn:hover {
+  cursor: pointer;
+  color: rgb(196, 136, 252);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, rgba(176, 106, 252, 1) 39%, rgba(116, 17, 255, 1) 101%);
+  border: none;
+  border-radius: 50px;
+  width: 100%;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, rgba(196, 136, 252, 1) 39%, rgba(136, 47, 255, 1) 101%);
+}
+
+.btn-primary:focus {
+  box-shadow: none;
+  border: none;
+}
+
+small {
+  color: #F2CEFF;
+}
+
+.far.fa-user {
+  font-size: 13px;
+}
+
+.alert-danger {
+  background: rgba(203, 80, 72, 0.2);
+  border: 1px solid #CB5048;
+  color: #F2CEFF;
+  margin: 15px 0;
+}
+
+.alert-success {
+  background: rgba(80, 203, 96, 0.2);
+  border: 1px solid #50CB60;
+  color: #F2CEFF;
+  margin: 15px 0;
+}

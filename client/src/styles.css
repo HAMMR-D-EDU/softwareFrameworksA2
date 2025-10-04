@@ -2,6 +2,7 @@
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background-color: #f8f9fa;
+  padding-top: 90px; /* Add padding for fixed navbar */
 }
 
 /* Custom Bootstrap overrides */
