@@ -39,7 +39,7 @@ export interface Channel {
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  private base = 'http://localhost:3000'; // dev
+  private base = 'https://localhost:3000'; // dev
 
   constructor(private http: HttpClient) {}
 

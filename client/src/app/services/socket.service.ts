@@ -23,7 +23,7 @@ export interface UserEvent {
 })
 export class SocketService {
   private socket: Socket;
-  private serverUrl = 'http://localhost:3000';
+  private serverUrl = 'https://localhost:3000';
 
   constructor() {
     // Initialize Socket.IO connection
@@ -214,6 +214,52 @@ export class SocketService {
 
       return () => {
         this.socket.off('group-notification');
+      };
+    });
+  }
+
+  /**
+   * Join a video room
+   */
+  joinVideoRoom(roomId: string, peerId: string, userId: string, username: string): void {
+    this.socket.emit('join-video-room', { roomId, peerId, userId, username });
+    console.log(`Joined video room: ${roomId}`);
+  }
+
+  /**
+   * Leave a video room
+   */
+  leaveVideoRoom(roomId: string, peerId: string, username: string): void {
+    this.socket.emit('leave-video-room', { roomId, peerId, username });
+    console.log(`Left video room: ${roomId}`);
+  }
+
+  /**
+   * Observable for when a user connects to video room
+   */
+  onUserConnected(): Observable<{ peerId: string; userId: string; username: string }> {
+    return new Observable(observer => {
+      this.socket.on('user-connected', (data) => {
+        observer.next(data);
+      });
+
+      return () => {
+        this.socket.off('user-connected');
+      };
+    });
+  }
+
+  /**
+   * Observable for when a user disconnects from video room
+   */
+  onUserDisconnected(): Observable<{ peerId: string; username: string }> {
+    return new Observable(observer => {
+      this.socket.on('user-disconnected', (data) => {
+        observer.next(data);
+      });
+
+      return () => {
+        this.socket.off('user-disconnected');
       };
     });
   }

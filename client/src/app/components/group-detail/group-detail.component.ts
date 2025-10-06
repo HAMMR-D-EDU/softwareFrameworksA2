@@ -86,7 +86,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
         console.log('📜 Chat history received:', history.length, 'messages');
         history.forEach(msg => {
           if (msg.imagePath) {
-            console.log('🖼️  History image:', 'http://localhost:3000' + msg.imagePath);
+            console.log('🖼️  History image:', 'https://localhost:3000' + msg.imagePath);
           }
         });
         this.messages = history;
@@ -101,7 +101,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
         console.log('📩 New message received:', message);
         if (message.imagePath) {
           console.log('🖼️  Image path:', message.imagePath);
-          console.log('🔗 Full URL:', 'http://localhost:3000' + message.imagePath);
+          console.log('🔗 Full URL:', 'https://localhost:3000' + message.imagePath);
         }
         this.messages.push(message);
         setTimeout(() => this.scrollToBottom(), 100);
@@ -658,6 +658,14 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Only super admins or group admins can promote, and only if the user is not already a group admin
     return (this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id)) && 
            !this.isGroupAdmin(userId);
+  }
+
+  startVideoChat() {
+    if (this.selectedChannel && this.currentUser) {
+      // Navigate to video chat or open in modal
+      const videoChatUrl = `/video-chat/${this.selectedChannel.id}`;
+      window.open(videoChatUrl, '_blank', 'width=1200,height=800');
+    }
   }
 
   ngOnDestroy(): void {

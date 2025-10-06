@@ -1,10 +1,12 @@
 import express from 'express';
-import http from 'http';
+import https from 'https';
+import fs from 'fs';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectToDatabase, healthCheck, getDb } from './config/db.js';
 import { initializeSocket } from './config/socket.js';
+import { PeerServer } from 'peer';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,12 +20,18 @@ import adminRoutes from './routes/admin.js';
 import reportRoutes from './routes/reports.js';
 import uploadRoutes from './routes/uploads.js';
 
+// SSL Certificate options
+const options = {
+  key: fs.readFileSync(path.join(__dirname, 'key.pem')),
+  cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
+};
+
 const app = express();
-const httpServer = http.createServer(app);
+const httpsServer = https.createServer(options, app);
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:4200', 'http://localhost:3000'],
+  origin: ['https://localhost:4200', 'https://localhost:3000', 'http://localhost:4200'],
   credentials: true
 }));
 app.use(express.json());
@@ -40,8 +48,9 @@ app.use('/admin', adminRoutes);           // /admin/*
 app.use('/api/reports', reportRoutes);    // /api/reports
 app.use('/api', uploadRoutes);            // /api/upload
 
-// Start server
+// Start servers
 const PORT = 3000;
+const PEER_PORT = 3001;
 
 /**
  * Initialize MongoDB connection and start Express + Socket.IO server
@@ -62,13 +71,24 @@ async function startServer() {
     await db.collection('messages').createIndex({ createdAt: -1 });
     console.log('✓ Message indexes created');
     
-    // Initialize Socket.IO
-    initializeSocket(httpServer);
+    // Initialize Socket.IO with HTTPS server
+    initializeSocket(httpsServer);
     console.log('✓ Socket.IO initialized');
     
-    // Start HTTP server (both Express and Socket.IO)
-    httpServer.listen(PORT, () => {
-      console.log(`✓ Server running with Socket.IO on http://localhost:${PORT}`);
+    // Start PeerJS server
+    const peerServer = PeerServer({ 
+      port: PEER_PORT, 
+      path: '/',
+      ssl: {
+        key: fs.readFileSync(path.join(__dirname, 'key.pem')),
+        cert: fs.readFileSync(path.join(__dirname, 'cert.pem'))
+      }
+    });
+    console.log('✓ PeerJS server started on port', PEER_PORT);
+    
+    // Start HTTPS server (both Express and Socket.IO)
+    httpsServer.listen(PORT, () => {
+      console.log(`✓ Video chat server running on https://localhost:${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

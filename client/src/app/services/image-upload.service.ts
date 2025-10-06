@@ -17,7 +17,7 @@ export interface UploadResponse {
   providedIn: 'root'
 })
 export class ImageUploadService {
-  private apiUrl = 'http://localhost:3000/api';
+  private apiUrl = 'https://localhost:3000/api';
 
   constructor(private http: HttpClient) {}
 

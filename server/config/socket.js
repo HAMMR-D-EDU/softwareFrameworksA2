@@ -10,7 +10,7 @@ let io;
 export function initializeSocket(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: ['http://localhost:4200', 'http://localhost:3000'],
+      origin: ['https://localhost:4200', 'https://localhost:3000', 'http://localhost:4200'],
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -164,6 +164,19 @@ export function initializeSocket(httpServer) {
       const { groupId, username } = payload;
       socket.leave(`group_${groupId}`);
       console.log(`User ${username} left group room: group_${groupId}`);
+    });
+
+    // NEW: Video chat signaling
+    socket.on('join-video-room', ({ roomId, peerId, userId, username }) => {
+      socket.join(`video_${roomId}`);
+      socket.to(`video_${roomId}`).emit('user-connected', { peerId, userId, username });
+      console.log(`✓ User ${username} (${peerId}) joined video room: video_${roomId}`);
+    });
+
+    socket.on('leave-video-room', ({ roomId, peerId, username }) => {
+      socket.to(`video_${roomId}`).emit('user-disconnected', { peerId, username });
+      socket.leave(`video_${roomId}`);
+      console.log(`User ${username} (${peerId}) left video room: video_${roomId}`);
     });
 
     // Handle disconnect
