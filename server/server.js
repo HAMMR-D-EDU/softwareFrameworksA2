@@ -1,23 +1,35 @@
-const express = require('express');
-const cors = require('cors');
-const { loadDataFromDisk } = require('./config/data');
+import express from 'express';
+import http from 'http';
+import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { connectToDatabase, healthCheck, getDb } from './config/db.js';
+import { initializeSocket } from './config/socket.js';
 
-const app = express();
-
-// Middleware
-app.use(cors());           // allow :4200 → :3000 during dev
-app.use(express.json());   // parse JSON bodies automatically
-
-// Load data on startup
-loadDataFromDisk();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const groupRoutes = require('./routes/groups');
-const channelRoutes = require('./routes/channels');
-const adminRoutes = require('./routes/admin');
-const reportRoutes = require('./routes/reports');
+import authRoutes from './routes/auth.js';
+import userRoutes from './routes/users.js';
+import groupRoutes from './routes/groups.js';
+import channelRoutes from './routes/channels.js';
+import adminRoutes from './routes/admin.js';
+import reportRoutes from './routes/reports.js';
+import uploadRoutes from './routes/uploads.js';
+
+const app = express();
+const httpServer = http.createServer(app);
+
+// Middleware
+app.use(cors({
+  origin: ['http://localhost:4200', 'http://localhost:3000'],
+  credentials: true
+}));
+app.use(express.json());
+
+// Serve static images
+app.use('/images', express.static(path.join(__dirname, './userimages')));
 
 // Mount routes
 app.use('/api', authRoutes);              // /api/login, /api/register, /api/echo
@@ -26,8 +38,43 @@ app.use('/api/groups', groupRoutes);      // /api/groups/*
 app.use('/api/channels', channelRoutes);  // /api/channels/*
 app.use('/admin', adminRoutes);           // /admin/*
 app.use('/api/reports', reportRoutes);    // /api/reports
+app.use('/api', uploadRoutes);            // /api/upload
 
 // Start server
 const PORT = 3000;
-app.listen(PORT, () => console.log(`Express listening on http://localhost:${PORT}`));
 
+/**
+ * Initialize MongoDB connection and start Express + Socket.IO server
+ */
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    await connectToDatabase();
+    
+    // Health check
+    await healthCheck();
+    
+    // Get database instance for any additional setup
+    const db = getDb();
+    
+    // Create indexes for messages collection
+    await db.collection('messages').createIndex({ channelId: 1 });
+    await db.collection('messages').createIndex({ createdAt: -1 });
+    console.log('✓ Message indexes created');
+    
+    // Initialize Socket.IO
+    initializeSocket(httpServer);
+    console.log('✓ Socket.IO initialized');
+    
+    // Start HTTP server (both Express and Socket.IO)
+    httpServer.listen(PORT, () => {
+      console.log(`✓ Server running with Socket.IO on http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Start the server
+startServer().catch(console.error);

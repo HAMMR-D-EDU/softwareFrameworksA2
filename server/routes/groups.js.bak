@@ -1,6 +1,5 @@
 import express from 'express';
-import { getCollection, getNextId } from '../config/db.js'; 
-import { notifyGroupAdmins } from '../config/socket.js';
+import { getCollection, getNextId } from '../config/db.js';
 
 const router = express.Router();
 
@@ -341,24 +340,7 @@ router.post('/:groupId/interest', async (req, res) => {
     
     await groupInterestsCollection.insertOne(newInterest);
     
-    // Get user info for notification
-    const usersCollection = getCollection('users');
-    const user = await usersCollection.findOne({ id: userId });
-    
-    // Notify group admins in real-time via Socket.IO
-    notifyGroupAdmins(groupId, {
-      type: 'new_interest',
-      groupId,
-      groupName: group.name,
-      userId,
-      username: user?.username || 'Unknown User',
-      interestId: id,
-      timestamp: newInterest.timestamp,
-      message: `${user?.username || 'A user'} wants to join ${group.name}`
-    });
-    
     res.json({ ok: true, msg: 'Interest registered. Group admin will review your request.' });
-
   } catch (error) {
     console.error('Register interest error:', error);
     res.status(500).json({ ok: false, msg: 'Internal server error' });
@@ -417,11 +399,20 @@ router.post('/:groupId/interests/:interestId/approve', async (req, res) => {
       return res.json({ ok: true, msg: 'User already a member; request removed' });
     }
     
-    // Add user to group members (not as admin - must be promoted explicitly)
+    // Add user to group members
     await groupsCollection.updateOne(
       { id: groupId },
       { $addToSet: { memberIds: interest.userId } }
     );
+    
+    // If user is a group admin, add to adminIds
+    const addedUser = await usersCollection.findOne({ id: interest.userId });
+    if (addedUser && (addedUser.roles.includes('group_admin') || addedUser.roles.includes('groupAdmin'))) {
+      await groupsCollection.updateOne(
+        { id: groupId },
+        { $addToSet: { adminIds: interest.userId } }
+      );
+    }
     
     // Remove the interest request
     await groupInterestsCollection.deleteOne({ id: interestId });
@@ -518,9 +509,19 @@ router.get('/:groupId/channels', async (req, res) => {
       return res.status(404).json({ ok: false, msg: 'Group not found' });
     }
     
-    // All group members can see all channels in the group
-    // (They can see the channels but may not be able to access them)
-    const channels = await channelsCollection.find({ groupId }).toArray();
+    // Check user permissions
+    const requester = await usersCollection.findOne({ id: userId });
+    const isSuperAdmin = requester && (requester.roles.includes('super') || requester.roles.includes('super_admin'));
+    const isGroupAdmin = group.adminIds.includes(userId);
+    
+    // Get channels
+    let query = { groupId };
+    if (!isSuperAdmin && !isGroupAdmin) {
+      // Regular users only see channels they're members of
+      query.memberIds = userId;
+    }
+    
+    const channels = await channelsCollection.find(query).toArray();
     res.json(channels.map(({ _id, ...channel }) => channel));
   } catch (error) {
     console.error('Get group channels error:', error);

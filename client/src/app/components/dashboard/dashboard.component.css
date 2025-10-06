@@ -275,3 +275,69 @@
   background: #6e6b8a;
   color: #ffffff;
 }
+
+/* Browse All Groups Section */
+.group-card-browse {
+  border: 2px solid #e0e0e0;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.group-card-browse::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(135deg, rgba(176, 106, 252, 1) 0%, rgba(116, 17, 255, 1) 100%);
+  transition: left 0.3s ease;
+}
+
+.group-card-browse:hover {
+  border-color: rgb(176, 106, 252);
+  box-shadow: 0 8px 16px rgba(176, 106, 252, 0.3);
+  transform: translateY(-5px);
+}
+
+.group-card-browse:hover::before {
+  left: 0;
+}
+
+.group-card-browse .btn-primary {
+  background: linear-gradient(135deg, rgba(176, 106, 252, 1) 0%, rgba(116, 17, 255, 1) 100%);
+  border: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.group-card-browse .btn-primary:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(176, 106, 252, 0.5);
+}
+
+.group-card-browse .badge {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+}
+
+.separator {
+  height: 3px;
+  background: linear-gradient(135deg, rgba(176, 106, 252, 1) 0%, rgba(116, 17, 255, 1) 100%);
+  margin: 1rem 0 0 0;
+  border-radius: 2px;
+}
+
+/* Browse Groups Section - Purple Theme */
+.browse-groups-section {
+  background: linear-gradient(135deg, rgba(232, 224, 245, 0.5) 0%, rgba(248, 239, 255, 0.5) 100%);
+}
+
+.browse-groups-section .text-muted {
+  color: #6c5b7b !important;
+}

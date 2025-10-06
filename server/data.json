@@ -67,6 +67,18 @@
       "adminIds": [
         "u_1"
       ]
+    },
+    {
+      "id": "g_3",
+      "name": "test",
+      "ownerId": "u_1",
+      "creatorId": "u_1",
+      "memberIds": [
+        "u_1"
+      ],
+      "adminIds": [
+        "u_1"
+      ]
     }
   ],
   "channels": [

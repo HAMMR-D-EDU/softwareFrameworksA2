@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import { getCollection, getNextId } from '../config/db.js';
+
 const router = express.Router();
-const { data, saveDataToDisk } = require('../config/data');
 
 // POST /api/echo
 router.post('/echo', (req, res) => {
@@ -8,26 +9,64 @@ router.post('/echo', (req, res) => {
 });
 
 // POST /api/login
-router.post('/login', (req, res) => {
-  const { username, password } = req.body || {};
-  const user = data.users.find(u => u.username === username && u.password === password);
-  if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-  const { password: _, ...safe } = user;
-  res.json(safe);
+router.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    const usersCollection = getCollection('users');
+    
+    const user = await usersCollection.findOne({ username, password });
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Remove password and MongoDB _id from response
+    const { password: _, _id, ...safe } = user;
+    res.json(safe);
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // POST /api/register
-router.post('/register', (req, res) => {
-  const { username, password, email = '' } = req.body || {};
-  if (!username || !password) return res.status(400).json({ ok: false, msg: 'Missing fields' });
-  if (data.users.some(u => u.username === username)) {
-    return res.status(409).json({ ok: false, msg: 'Username exists' });
+router.post('/register', async (req, res) => {
+  try {
+    const { username, password, email = '' } = req.body || {};
+    
+    if (!username || !password) {
+      return res.status(400).json({ ok: false, msg: 'Missing fields' });
+    }
+    
+    const usersCollection = getCollection('users');
+    
+    // Check if username already exists
+    const existingUser = await usersCollection.findOne({ username });
+    if (existingUser) {
+      return res.status(409).json({ ok: false, msg: 'Username exists' });
+    }
+    
+    // Generate new user ID
+    const id = await getNextId('users', 'u_');
+    
+    // Create new user
+    const newUser = {
+      id,
+      username,
+      password,
+      email,
+      roles: ['user'],
+      groups: []
+    };
+    
+    await usersCollection.insertOne(newUser);
+    
+    res.status(201).json({ ok: true, id });
+  } catch (error) {
+    console.error('Register error:', error);
+    res.status(500).json({ ok: false, msg: 'Internal server error' });
   }
-  const id = `u_${data.users.length + 1}`;
-  data.users.push({ id, username, password, email, roles: ['user'], groups: [] });
-  saveDataToDisk();
-  res.status(201).json({ ok: true, id });
 });
 
-module.exports = router;
+export default router;
 

@@ -1,106 +1,228 @@
-const express = require('express');
+import express from 'express';
+import { getCollection, getNextId } from '../config/db.js';
+
 const router = express.Router();
-const { data, saveDataToDisk } = require('../config/data');
 
 // GET /admin/users
-router.get('/users', (req, res) => {
-  const adminId = req.query.adminId;
-  const admin = data.users.find(u => u.id === adminId);
-  if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
-    return res.status(403).json({ ok: false, msg: 'Only super admins can view users' });
+router.get('/users', async (req, res) => {
+  try {
+    const adminId = req.query.adminId;
+    const usersCollection = getCollection('users');
+    
+    // Verify admin permissions
+    const admin = await usersCollection.findOne({ id: adminId });
+    if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
+      return res.status(403).json({ ok: false, msg: 'Only super admins can view users' });
+    }
+    
+    // Get all users
+    const users = await usersCollection.find({}).toArray();
+    const safe = users.map(({ password, _id, ...u }) => u);
+    res.json(safe);
+  } catch (error) {
+    console.error('Get admin users error:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
-  const safe = data.users.map(({ password, ...u }) => u);
-  res.json(safe);
 });
 
 // POST /admin/users
-router.post('/users', (req, res) => {
-  const { adminId, username, email = '', password = '123' } = req.body || {};
-  const admin = data.users.find(u => u.id === adminId);
-  if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
-    return res.status(403).json({ ok: false, msg: 'Only super admins can create users' });
+router.post('/users', async (req, res) => {
+  try {
+    const { adminId, username, email = '', password = '123' } = req.body || {};
+    const usersCollection = getCollection('users');
+    
+    // Verify admin permissions
+    const admin = await usersCollection.findOne({ id: adminId });
+    if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
+      return res.status(403).json({ ok: false, msg: 'Only super admins can create users' });
+    }
+    
+    if (!username) {
+      return res.status(400).json({ ok: false, msg: 'Username is required' });
+    }
+    
+    // Check if username exists
+    const existingUser = await usersCollection.findOne({ username });
+    if (existingUser) {
+      return res.status(409).json({ ok: false, msg: 'Username exists' });
+    }
+    
+    // Generate new user ID
+    const id = await getNextId('users', 'u_');
+    
+    // Create new user
+    const newUser = {
+      id,
+      username,
+      password,
+      email,
+      roles: ['user'],
+      groups: []
+    };
+    
+    await usersCollection.insertOne(newUser);
+    
+    const { password: _pw, _id, ...safe } = newUser;
+    res.status(201).json({ ok: true, user: safe });
+  } catch (error) {
+    console.error('Create admin user error:', error);
+    res.status(500).json({ ok: false, msg: 'Internal server error' });
   }
-  if (!username) return res.status(400).json({ ok: false, msg: 'Username is required' });
-  if (data.users.some(u => u.username === username)) {
-    return res.status(409).json({ ok: false, msg: 'Username exists' });
-  }
-  const id = `u_${data.users.length + 1}`;
-  data.users.push({ id, username, password, email, roles: ['user'], groups: [] });
-  saveDataToDisk();
-  const { password: _pw, ...safe } = data.users.find(u => u.id === id) || {};
-  return res.status(201).json({ ok: true, user: safe });
 });
 
 // PATCH /admin/users/:id/role
-router.patch('/users/:id/role', (req, res) => {
-  const { id } = req.params;
-  const { add, remove, adminId } = req.body || {};
-  const admin = data.users.find(u => u.id === adminId);
-  if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
-    return res.status(403).json({ ok: false, msg: 'Only super admins can modify roles' });
+router.patch('/users/:id/role', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { add, remove, adminId } = req.body || {};
+    
+    const usersCollection = getCollection('users');
+    const groupsCollection = getCollection('groups');
+    
+    // Verify admin permissions
+    const admin = await usersCollection.findOne({ id: adminId });
+    if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
+      return res.status(403).json({ ok: false, msg: 'Only super admins can modify roles' });
+    }
+    
+    // Find user
+    const user = await usersCollection.findOne({ id });
+    if (!user) {
+      return res.status(404).json({ ok: false, msg: 'User not found' });
+    }
+    
+    if (add === 'group_admin') {
+      // Add group_admin and groupAdmin roles
+      await usersCollection.updateOne(
+        { id },
+        {
+          $addToSet: {
+            roles: { $each: ['group_admin', 'groupAdmin'] }
+          }
+        }
+      );
+      
+      // Add user as admin to all groups they're a member of
+      await groupsCollection.updateMany(
+        { memberIds: id },
+        { $addToSet: { adminIds: id } }
+      );
+      
+      return res.json({ ok: true, msg: 'User promoted to group_admin' });
+    }
+    
+    if (remove === 'group_admin') {
+      // Remove group_admin roles
+      await usersCollection.updateOne(
+        { id },
+        {
+          $pull: {
+            roles: { $in: ['group_admin', 'groupAdmin'] }
+          }
+        }
+      );
+      
+      // Remove user from admin lists in all groups
+      await groupsCollection.updateMany(
+        { adminIds: id },
+        { $pull: { adminIds: id } }
+      );
+      
+      return res.json({ ok: true, msg: 'User demoted from group_admin' });
+    }
+    
+    res.status(400).json({ ok: false, msg: 'Specify add or remove for role' });
+  } catch (error) {
+    console.error('Update role error:', error);
+    res.status(500).json({ ok: false, msg: 'Internal server error' });
   }
-  const user = data.users.find(u => u.id === id);
-  if (!user) return res.status(404).json({ ok: false, msg: 'User not found' });
-
-  if (add === 'group_admin') {
-    if (!user.roles.includes('group_admin')) user.roles.push('group_admin');
-    if (!user.roles.includes('groupAdmin')) user.roles.push('groupAdmin');
-    data.groups.forEach(g => {
-      if (g.memberIds.includes(user.id) && !g.adminIds.includes(user.id)) {
-        g.adminIds.push(user.id);
-      }
-    });
-    saveDataToDisk();
-    return res.json({ ok: true, msg: 'User promoted to group_admin' });
-  }
-  if (remove === 'group_admin') {
-    user.roles = user.roles.filter(r => r !== 'group_admin' && r !== 'groupAdmin');
-    data.groups.forEach(g => {
-      g.adminIds = g.adminIds.filter(aid => aid !== user.id);
-    });
-    saveDataToDisk();
-    return res.json({ ok: true, msg: 'User demoted from group_admin' });
-  }
-  return res.status(400).json({ ok: false, msg: 'Specify add or remove for role' });
 });
 
 // POST /admin/groups/:groupId/members
-router.post('/groups/:groupId/members', (req, res) => {
-  const { groupId } = req.params;
-  const { userId, adminId } = req.body || {};
-  const admin = data.users.find(u => u.id === adminId);
-  if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
-    return res.status(403).json({ ok: false, msg: 'Only super admins can add members' });
+router.post('/groups/:groupId/members', async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { userId, adminId } = req.body || {};
+    
+    const usersCollection = getCollection('users');
+    const groupsCollection = getCollection('groups');
+    
+    // Verify admin permissions
+    const admin = await usersCollection.findOne({ id: adminId });
+    if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
+      return res.status(403).json({ ok: false, msg: 'Only super admins can add members' });
+    }
+    
+    // Find group
+    const group = await groupsCollection.findOne({ id: groupId });
+    if (!group) {
+      return res.status(404).json({ ok: false, msg: 'Group not found' });
+    }
+    
+    // Check if already a member
+    if (group.memberIds.includes(userId)) {
+      return res.status(409).json({ ok: false, msg: 'Already a member' });
+    }
+    
+    // Add user to group members
+    await groupsCollection.updateOne(
+      { id: groupId },
+      { $addToSet: { memberIds: userId } }
+    );
+    
+    // If user is a group admin, add to adminIds
+    const addedUser = await usersCollection.findOne({ id: userId });
+    if (addedUser && (addedUser.roles.includes('group_admin') || addedUser.roles.includes('groupAdmin'))) {
+      await groupsCollection.updateOne(
+        { id: groupId },
+        { $addToSet: { adminIds: userId } }
+      );
+    }
+    
+    res.json({ ok: true, msg: 'User added to group' });
+  } catch (error) {
+    console.error('Admin add member error:', error);
+    res.status(500).json({ ok: false, msg: 'Internal server error' });
   }
-  const group = data.groups.find(g => g.id === groupId);
-  if (!group) return res.status(404).json({ ok: false, msg: 'Group not found' });
-  if (group.memberIds.includes(userId)) {
-    return res.status(409).json({ ok: false, msg: 'Already a member' });
-  }
-  group.memberIds.push(userId);
-  const addedUser = data.users.find(u => u.id === userId);
-  if (addedUser && (addedUser.roles.includes('group_admin') || addedUser.roles.includes('groupAdmin'))) {
-    if (!group.adminIds.includes(userId)) group.adminIds.push(userId);
-  }
-  saveDataToDisk();
-  res.json({ ok: true, msg: 'User added to group' });
 });
 
 // DELETE /admin/groups/:groupId/members/:userId
-router.delete('/groups/:groupId/members/:userId', (req, res) => {
-  const { groupId, userId } = req.params;
-  const adminId = req.query.adminId;
-  const admin = data.users.find(u => u.id === adminId);
-  if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
-    return res.status(403).json({ ok: false, msg: 'Only super admins can remove members' });
+router.delete('/groups/:groupId/members/:userId', async (req, res) => {
+  try {
+    const { groupId, userId } = req.params;
+    const adminId = req.query.adminId;
+    
+    const usersCollection = getCollection('users');
+    const groupsCollection = getCollection('groups');
+    
+    // Verify admin permissions
+    const admin = await usersCollection.findOne({ id: adminId });
+    if (!admin || !(admin.roles.includes('super') || admin.roles.includes('super_admin'))) {
+      return res.status(403).json({ ok: false, msg: 'Only super admins can remove members' });
+    }
+    
+    // Find group
+    const group = await groupsCollection.findOne({ id: groupId });
+    if (!group) {
+      return res.status(404).json({ ok: false, msg: 'Group not found' });
+    }
+    
+    // Remove user from group
+    await groupsCollection.updateOne(
+      { id: groupId },
+      {
+        $pull: {
+          memberIds: userId,
+          adminIds: userId
+        }
+      }
+    );
+    
+    res.json({ ok: true, msg: 'User removed from group' });
+  } catch (error) {
+    console.error('Admin remove member error:', error);
+    res.status(500).json({ ok: false, msg: 'Internal server error' });
   }
-  const group = data.groups.find(g => g.id === groupId);
-  if (!group) return res.status(404).json({ ok: false, msg: 'Group not found' });
-  group.memberIds = group.memberIds.filter(id => id !== userId);
-  group.adminIds = group.adminIds.filter(id => id !== userId);
-  saveDataToDisk();
-  res.json({ ok: true, msg: 'User removed from group' });
 });
 
-module.exports = router;
-
+export default router;

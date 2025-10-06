@@ -28,6 +28,17 @@
       </div>
     </div>
 
+    <!-- Real-Time Notification Toast -->
+    <div *ngIf="showNotification" class="notification-toast">
+      <div class="notification-content">
+        <i class="fas fa-bell me-2"></i>
+        <span>{{ notificationMessage }}</span>
+        <button class="btn-close-notification" (click)="showNotification = false">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
     <!-- Messages (Success/Error) -->
     <div *ngIf="channelSuccess" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
       <i class="fas fa-check-circle pe-2"></i>{{ channelSuccess }}
@@ -151,15 +162,86 @@
               </div>
             </div>
 
-            <!-- Channel Selected - Placeholder for Chat -->
+            <!-- Channel Selected - Real-Time Chat -->
             <div *ngIf="selectedChannel && !isBannedFromChannel(selectedChannel)" class="channel-content">
-              <div class="text-center py-5">
-                <i class="fas fa-message fa-3x mb-3 text-muted"></i>
-                <h5>Channel: {{ selectedChannel.name }}</h5>
-                <p class="text-muted">Chat functionality will be implemented here</p>
-                <small class="text-muted d-block mt-3">
-                  <i class="fas fa-info-circle pe-1"></i>Messages, file sharing, and real-time chat coming soon
-                </small>
+              <!-- Messages Container -->
+              <div class="messages-container" #messagesContainer>
+                <!-- No Messages Yet -->
+                <div *ngIf="messages.length === 0" class="no-messages">
+                  <i class="fas fa-comments fa-3x mb-3 text-muted"></i>
+                  <p class="text-muted">No messages yet. Start the conversation!</p>
+                </div>
+
+                <!-- Chat Messages -->
+                <div *ngFor="let message of messages" 
+                     class="message" 
+                     [ngClass]="{'own-message': isOwnMessage(message), 'other-message': !isOwnMessage(message)}">
+                  
+                  <!-- Username -->
+                  <div class="message-header" [ngClass]="{'own-message-header': isOwnMessage(message), 'other-message-header': !isOwnMessage(message)}">
+                    <span class="username">{{ message.username }}</span>
+                  </div>
+
+                  <!-- Message Content -->
+                  <div class="message-content">
+                    <!-- Text Message -->
+                    <p *ngIf="message.text" class="message-text">{{ message.text }}</p>
+
+                    <!-- Image Message -->
+                    <img *ngIf="message.imagePath" 
+                         [src]="'http://localhost:3000' + message.imagePath" 
+                         alt="Shared image"
+                         class="message-image">
+                  </div>
+                </div>
+
+                <!-- Typing Indicator -->
+                <div *ngIf="typingUser" class="typing-indicator">
+                  <span>{{ typingUser }} is typing...</span>
+                </div>
+              </div>
+
+              <!-- Image Preview (if selected) -->
+              <div *ngIf="imagePreview" class="image-preview-container">
+                <img [src]="imagePreview" alt="Preview" class="image-preview">
+                <div class="preview-actions">
+                  <button (click)="uploadImage()" [disabled]="isUploading" class="btn btn-sm btn-primary">
+                    {{ isUploading ? 'Uploading...' : 'Send Image' }}
+                  </button>
+                  <button (click)="cancelImage()" [disabled]="isUploading" class="btn btn-sm btn-secondary">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+
+              <!-- Message Input -->
+              <div class="message-input-container">
+                <!-- Hidden File Input -->
+                <input type="file" 
+                       #fileInput 
+                       (change)="onFileSelected($event)" 
+                       accept="image/*"
+                       style="display: none;">
+
+                <!-- Image Upload Button -->
+                <button (click)="triggerFileInput()" class="btn btn-outline-secondary image-btn" title="Upload Image">
+                  <i class="fas fa-image"></i>
+                </button>
+
+                <!-- Text Input -->
+                <input type="text"
+                       [(ngModel)]="messageText"
+                       (keyup.enter)="sendMessage()"
+                       (input)="onTyping()"
+                       placeholder="Type a message..."
+                       class="form-control message-input">
+
+                <!-- Send Button -->
+                <button (click)="sendMessage()" 
+                        [disabled]="!messageText.trim()" 
+                        class="btn btn-primary send-btn">
+                  <i class="fas fa-paper-plane"></i> Send
+                </button>
               </div>
             </div>
 

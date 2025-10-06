@@ -83,12 +83,6 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Subscribe to chat history
     const historySubscription = this.socketService.onHistory().subscribe(
       (history: ChatMessage[]) => {
-        console.log('📜 Chat history received:', history.length, 'messages');
-        history.forEach(msg => {
-          if (msg.imagePath) {
-            console.log('🖼️  History image:', 'http://localhost:3000' + msg.imagePath);
-          }
-        });
         this.messages = history;
         setTimeout(() => this.scrollToBottom(), 100);
       }
@@ -98,11 +92,6 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Subscribe to new messages
     const messageSubscription = this.socketService.onMessage().subscribe(
       (message: ChatMessage) => {
-        console.log('📩 New message received:', message);
-        if (message.imagePath) {
-          console.log('🖼️  Image path:', message.imagePath);
-          console.log('🔗 Full URL:', 'http://localhost:3000' + message.imagePath);
-        }
         this.messages.push(message);
         setTimeout(() => this.scrollToBottom(), 100);
       }
@@ -446,15 +435,14 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     return 'Member';
   }
 
-
   canCreateChannels(): boolean {
     if (!this.group || !this.currentUser) return false;
-    return this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id);
+    return this.group.adminIds.includes(this.currentUser.id);
   }
 
   canBanUsers(channel: Channel): boolean {
     if (!this.group || !this.currentUser) return false;
-    return this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id);
+    return this.group.adminIds.includes(this.currentUser.id);
   }
 
   isGroupAdmin(userId: string): boolean {
