@@ -31,4 +31,13 @@ export class ImageUploadService {
     
     return this.http.post<UploadResponse>(`${this.apiUrl}/upload`, formData);
   }
+
+  /**
+   * Upload avatar image for a specific user
+   */
+  uploadAvatar(userId: string, file: File): Observable<{ ok: boolean; avatarPath: string; msg: string }> {
+    const formData = new FormData();
+    formData.append('image', file, file.name);
+    return this.http.post<{ ok: boolean; avatarPath: string; msg: string }>(`${this.apiUrl}/upload/avatar/${userId}`, formData);
+  }
 }

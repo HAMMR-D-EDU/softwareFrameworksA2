@@ -79,6 +79,13 @@ export function initializeSocket(httpServer) {
 
         socket.emit('history', sortedHistory);
 
+        // Emit current video status for this channel
+        try {
+          const videoRoom = io.sockets.adapter.rooms.get(`video_${channelId}`);
+          const inProgress = !!(videoRoom && videoRoom.size > 0);
+          socket.emit('video-status', { roomId: channelId, inProgress });
+        } catch {}
+
         // Notify others in the room
         socket.to(channelId).emit('user-joined', {
           userId,
@@ -171,12 +178,22 @@ export function initializeSocket(httpServer) {
       socket.join(`video_${roomId}`);
       socket.to(`video_${roomId}`).emit('user-connected', { peerId, userId, username });
       console.log(`✓ User ${username} (${peerId}) joined video room: video_${roomId}`);
+      // Broadcast to channel that a call is in progress
+      io.to(roomId).emit('video-status', { roomId, inProgress: true });
     });
 
     socket.on('leave-video-room', ({ roomId, peerId, username }) => {
       socket.to(`video_${roomId}`).emit('user-disconnected', { peerId, username });
       socket.leave(`video_${roomId}`);
       console.log(`User ${username} (${peerId}) left video room: video_${roomId}`);
+      // If no more peers in video room, mark as not in progress
+      try {
+        const videoRoom = io.sockets.adapter.rooms.get(`video_${roomId}`);
+        const inProgress = !!(videoRoom && videoRoom.size > 0);
+        if (!inProgress) {
+          io.to(roomId).emit('video-status', { roomId, inProgress: false });
+        }
+      } catch {}
     });
 
     // Handle disconnect

@@ -6,9 +6,6 @@
 <div class="video-chat-container">
   <div class="video-header">
     <h3>Video Chat - {{ roomId }}</h3>
-    <button class="btn btn-danger btn-sm" (click)="endCall()">
-      <i class="fas fa-phone-slash"></i> End Call
-    </button>
   </div>
 
   <div class="video-grid">
@@ -36,23 +33,7 @@
 
   <!-- Controls -->
   <div class="video-controls">
-    <button 
-      class="btn btn-control" 
-      [class.btn-danger]="!isVideoEnabled"
-      [class.btn-success]="isVideoEnabled"
-      (click)="toggleVideo()">
-      <i class="fas" [class.fa-video]="isVideoEnabled" [class.fa-video-slash]="!isVideoEnabled"></i>
-    </button>
-    
-    <button 
-      class="btn btn-control" 
-      [class.btn-danger]="!isAudioEnabled"
-      [class.btn-success]="isAudioEnabled"
-      (click)="toggleAudio()">
-      <i class="fas" [class.fa-microphone]="isAudioEnabled" [class.fa-microphone-slash]="!isAudioEnabled"></i>
-    </button>
-    
-    <button class="btn btn-danger btn-control" (click)="endCall()">
+    <button class="btn btn-danger btn-control" (click)="leave()">
       <i class="fas fa-phone-slash"></i>
     </button>
   </div>

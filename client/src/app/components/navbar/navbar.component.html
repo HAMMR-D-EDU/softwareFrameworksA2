@@ -37,8 +37,16 @@
           <a class="btn btn-purple btn-rounded" routerLink="/login" routerLinkActive="active-btn">Sign in</a>
         </li>
         <li *ngIf="user" class="nav-item me-3">
-          <span class="navbar-text user-info">
-            <i class="fas fa-user pe-2"></i>{{ user.username }}
+          <span class="navbar-text user-info d-flex align-items-center gap-2">
+            <img 
+              class="avatar"
+              [src]="getAvatarUrl()"
+              alt="avatar"
+              (click)="avatarInput.click()"
+              style="cursor:pointer"
+            />
+            <input type="file" #avatarInput accept="image/*" (change)="onAvatarSelected($event)" style="display:none;" />
+            <span><i class="fas fa-user pe-2"></i>{{ user.username }}</span>
           </span>
         </li>
         <li *ngIf="user" class="nav-item">

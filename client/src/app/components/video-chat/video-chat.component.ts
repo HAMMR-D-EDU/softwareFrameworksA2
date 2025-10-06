@@ -18,7 +18,7 @@ import {
   Input,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../../services/socket.service';
 import { PeerService } from '../../services/peer.service';
 import { AuthService } from '../../services/auth.service';
@@ -55,7 +55,8 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     private socketService: SocketService,
     private peerService: PeerService,
     private authService: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -193,31 +194,13 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     this.calls = this.calls.filter((c) => c.open);
   }
 
-  // Video/Audio control methods
-  toggleVideo() {
-    const localStream = this.peerService.getLocalStreamSync();
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        this.isVideoEnabled = videoTrack.enabled;
-      }
-    }
-  }
-
-  toggleAudio() {
-    const localStream = this.peerService.getLocalStreamSync();
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !audioTrack.enabled;
-        this.isAudioEnabled = audioTrack.enabled;
-      }
-    }
-  }
-
-  endCall() {
+  leave() {
+    // Clean up and navigate/close
     this.ngOnDestroy();
+    try {
+      window.close();
+    } catch {}
+    this.router.navigate(['/']);
   }
 }
 

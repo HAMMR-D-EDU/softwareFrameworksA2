@@ -124,12 +124,18 @@
             <div class="channel-actions-bar" *ngIf="selectedChannel">
               <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"># {{ selectedChannel.name }}</h6>
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center">
                   <button 
-                    *ngIf="selectedChannel && !isBannedFromChannel(selectedChannel)"
+                    *ngIf="selectedChannel && !isBannedFromChannel(selectedChannel) && !videoInProgress"
                     class="btn btn-sm btn-success" 
                     (click)="startVideoChat()">
                     <i class="fas fa-video pe-1"></i>Start Video Chat
+                  </button>
+                  <button 
+                    *ngIf="selectedChannel && !isBannedFromChannel(selectedChannel) && videoInProgress"
+                    class="btn btn-sm btn-warning" 
+                    (click)="startVideoChat()">
+                    <i class="fas fa-phone pe-1"></i>Call in Progress, Join?
                   </button>
                   <button 
                     *ngIf="canBanUsers(selectedChannel)" 
@@ -182,14 +188,16 @@
                 <div *ngFor="let message of messages" 
                      class="message" 
                      [ngClass]="{'own-message': isOwnMessage(message), 'other-message': !isOwnMessage(message)}">
-                  
-                  <!-- Username -->
-                  <div class="message-header" [ngClass]="{'own-message-header': isOwnMessage(message), 'other-message-header': !isOwnMessage(message)}">
-                    <span class="username">{{ message.username }}</span>
-                  </div>
+                  <!-- Own message: content left, avatar right -->
+                  <div class="d-flex align-items-start gap-2" *ngIf="isOwnMessage(message); else otherMsg">
+                    <div class="flex-grow-1">
+                      <!-- Username -->
+                      <div class="message-header" [ngClass]="{'own-message-header': isOwnMessage(message), 'other-message-header': !isOwnMessage(message)}">
+                        <span class="username">{{ message.username }}</span>
+                      </div>
 
-                  <!-- Message Content -->
-                  <div class="message-content">
+                      <!-- Message Content -->
+                      <div class="message-content">
                     <!-- Text Message -->
                     <p *ngIf="message.text" class="message-text">{{ message.text }}</p>
 
@@ -198,7 +206,29 @@
                          [src]="'https://localhost:3000' + message.imagePath" 
                          alt="Shared image"
                          class="message-image">
+                      </div>
+                    </div>
+                    <!-- Avatar on the right for own messages -->
+                    <img class="avatar" [src]="getAvatarForUser(message.userId)" alt="avatar" />
                   </div>
+                  <!-- Other user message: avatar left, content right -->
+                  <ng-template #otherMsg>
+                    <div class="d-flex align-items-start gap-2">
+                      <img class="avatar" [src]="getAvatarForUser(message.userId)" alt="avatar" />
+                      <div class="flex-grow-1">
+                        <div class="message-header" [ngClass]="{'own-message-header': isOwnMessage(message), 'other-message-header': !isOwnMessage(message)}">
+                          <span class="username">{{ message.username }}</span>
+                        </div>
+                        <div class="message-content">
+                          <p *ngIf="message.text" class="message-text">{{ message.text }}</p>
+                          <img *ngIf="message.imagePath" 
+                               [src]="'https://localhost:3000' + message.imagePath" 
+                               alt="Shared image"
+                               class="message-image">
+                        </div>
+                      </div>
+                    </div>
+                  </ng-template>
                 </div>
 
                 <!-- Typing Indicator -->

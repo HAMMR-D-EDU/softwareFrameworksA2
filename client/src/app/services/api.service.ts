@@ -19,6 +19,7 @@ export interface ApiUser {
   roles: string[]; 
   groups: string[]; 
   email?: string; 
+  avatarPath?: string;
 }
 
 export interface Group {

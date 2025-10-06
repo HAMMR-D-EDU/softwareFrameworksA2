@@ -265,6 +265,18 @@ export class SocketService {
   }
 
   /**
+   * Observable for video status in a channel (inProgress flag)
+   */
+  onVideoStatus(): Observable<{ roomId: string; inProgress: boolean }> {
+    return new Observable(observer => {
+      this.socket.on('video-status', (data: { roomId: string; inProgress: boolean }) => {
+        observer.next(data);
+      });
+      return () => this.socket.off('video-status');
+    });
+  }
+
+  /**
    * Disconnect socket
    */
   disconnect(): void {

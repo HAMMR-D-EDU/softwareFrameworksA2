@@ -23,6 +23,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   group: Group | null = null;
   channels: Channel[] = [];
   groupMembers: any[] = [];
+  private userIdToAvatar: Record<string, string> = {};
   currentUser: User | null = null;
   interests: any[] = [];
   
@@ -51,6 +52,7 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription[] = [];
   notificationMessage: string = '';
   showNotification: boolean = false;
+  videoInProgress: boolean = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -64,6 +66,15 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // React to user avatar changes instantly
+    const userChangeSub = this.auth.onUserChange().subscribe(u => {
+      if (u) {
+        // Update avatar map entry with cache-busting
+        const path = u.avatarPath ? (u.avatarPath.startsWith('http') ? u.avatarPath : `https://localhost:3000${u.avatarPath}`) : 'assets/images/a2-logo.png';
+        this.userIdToAvatar[u.id] = path;
+      }
+    });
+    this.subscriptions.push(userChangeSub);
     this.groupId = this.route.snapshot.paramMap.get('gid') ?? '';
     if (this.groupId) {
       this.loadGroupData();
@@ -148,6 +159,14 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     );
     this.subscriptions.push(errorSubscription);
     
+    // Subscribe to video status for this channel
+    const videoStatusSub = this.socketService.onVideoStatus().subscribe((data) => {
+      if (this.selectedChannel && data.roomId === this.selectedChannel.id) {
+        this.videoInProgress = data.inProgress;
+      }
+    });
+    this.subscriptions.push(videoStatusSub);
+    
     // Subscribe to group notifications
     const groupNotificationSubscription = this.socketService.onGroupNotification().subscribe(
       (notification: any) => {
@@ -206,6 +225,12 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     this.api.getGroupMembers(this.group.id).subscribe({
       next: (members) => {
         this.groupMembers = members;
+        // Build avatar map
+        this.userIdToAvatar = {};
+        members.forEach(m => {
+          const avatar = m.avatarPath ? `https://localhost:3000${m.avatarPath}` : 'assets/images/a2-logo.png';
+          this.userIdToAvatar[m.id] = avatar;
+        });
       },
       error: (error) => {
         console.error('Error loading members:', error);
@@ -371,6 +396,31 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     this.fileInput.nativeElement.click();
   }
 
+  onAvatarSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!this.currentUser) return;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      this.imageUploadService.uploadAvatar(this.currentUser.id, file).subscribe({
+        next: (res) => {
+          const path = res.avatarPath.startsWith('http') ? res.avatarPath : `https://localhost:3000${res.avatarPath}`;
+          // Update local map and current user session
+          this.userIdToAvatar[this.currentUser!.id] = path;
+          const updated = { ...this.currentUser!, avatarPath: res.avatarPath } as User;
+          this.auth.storeUser(updated);
+          this.currentUser = updated;
+          // Refresh members list so UI reflects changes
+          this.loadGroupMembers();
+          alert('Avatar updated');
+        },
+        error: (err) => {
+          console.error('Avatar upload failed', err);
+          alert('Failed to update avatar');
+        }
+      });
+    }
+  }
+
   /**
    * Scroll chat to bottom
    */
@@ -518,6 +568,10 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
 
   isSuperUser(member: any): boolean {
     return Array.isArray(member?.roles) && (member.roles.includes('super') || member.roles.includes('super_admin'));
+  }
+
+  getAvatarForUser(userId: string): string {
+    return this.userIdToAvatar[userId] || 'assets/images/a2-logo.png';
   }
 
   isSuperAdmin(): boolean {
