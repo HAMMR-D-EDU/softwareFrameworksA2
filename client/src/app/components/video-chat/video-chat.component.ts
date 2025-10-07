@@ -50,6 +50,7 @@ export class VideoChatComponent implements OnInit, OnDestroy {
   // Video/Audio controls
   isVideoEnabled: boolean = true;
   isAudioEnabled: boolean = true;
+  private localStream!: MediaStream;
 
   constructor(
     private socketService: SocketService,
@@ -75,8 +76,8 @@ export class VideoChatComponent implements OnInit, OnDestroy {
       }
 
       // 1) Obtain local media and preview it
-      const localStream = await this.peerService.getLocalStream();
-      this.attachStream(this.myVideo.nativeElement, localStream, { mute: true });
+      this.localStream = await this.peerService.getLocalStream();
+      this.attachStream(this.myVideo.nativeElement, this.localStream, { mute: true });
 
       // 2) Initialize PeerJS (gets us a peerId from the PeerServer)
       this.peerId = await this.peerService.initPeer();
@@ -201,6 +202,17 @@ export class VideoChatComponent implements OnInit, OnDestroy {
       window.close();
     } catch {}
     this.router.navigate(['/']);
+  }
+
+  toggleMute() {
+    try {
+      const track = this.localStream?.getAudioTracks()[0];
+      if (!track) { return; }
+      this.isAudioEnabled = !this.isAudioEnabled;
+      track.enabled = this.isAudioEnabled;
+    } catch (e) {
+      console.error('toggleMute error', e);
+    }
   }
 }
 

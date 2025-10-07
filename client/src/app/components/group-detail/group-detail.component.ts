@@ -119,6 +119,14 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
       }
     );
     this.subscriptions.push(messageSubscription);
+    // Subscribe to reaction updates
+    const reactSub = this.socketService.onReactions().subscribe(({ messageId, reactions }) => {
+      const idx = this.messages.findIndex(m => m.messageId === messageId);
+      if (idx >= 0) {
+        this.messages[idx] = { ...this.messages[idx], reactions } as any;
+      }
+    });
+    this.subscriptions.push(reactSub);
 
     // Subscribe to user joined events
     const joinedSubscription = this.socketService.onUserJoined().subscribe(
@@ -187,6 +195,14 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
       }
     );
     this.subscriptions.push(groupNotificationSubscription);
+
+    // Listen for avatar updates and refresh member avatars map
+    const avatarSub = this.socketService.onAvatarUpdated?.().subscribe((payload: { userId: string; avatarPath: string }) => {
+      if (payload && payload.userId && payload.avatarPath) {
+        this.userIdToAvatar[payload.userId] = payload.avatarPath.startsWith('http') ? payload.avatarPath : `https://localhost:3000${payload.avatarPath}`;
+      }
+    });
+    if (avatarSub) this.subscriptions.push(avatarSub);
   }
 
   loadGroupData() {
@@ -315,6 +331,14 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
       this.messageText = '';
     }
   }
+
+  /** Toggle reaction for a message */
+  toggleReaction(msg: ChatMessage, emoji: string) {
+    if (!this.selectedChannel || !this.currentUser || !msg.messageId) return;
+    if (this.isOwnMessage(msg)) return;
+    this.socketService.toggleReaction(this.selectedChannel.id, msg.messageId, this.currentUser.id, emoji);
+  }
+
 
   /**
    * Handle typing event

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService, User } from '../../services/auth.service';
 import { ApiService, Group } from '../../services/api.service';
+import { SocketService } from '../../services/socket.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -32,7 +33,8 @@ export class DashboardComponent implements OnInit {
   constructor(
     private auth: AuthService, 
     private api: ApiService, 
-    private router: Router
+    private router: Router,
+    private socketService: SocketService
   ) {
     this.user = this.auth.currentUser();
   }
@@ -40,6 +42,14 @@ export class DashboardComponent implements OnInit {
   ngOnInit() {
     this.loadGroups();
     this.loadAllGroups();
+    // Join personal user room and listen for membership approvals
+    if (this.user) {
+      this.socketService.joinUserRoom(this.user.id);
+      this.socketService.onMembershipApproved().subscribe(() => {
+        this.loadGroups();
+        this.loadAllGroups();
+      });
+    }
   }
 
   loadGroups() {

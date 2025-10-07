@@ -1,4 +1,5 @@
 import { Server } from 'socket.io';
+import { ObjectId } from 'mongodb';
 import { getCollection } from './db.js';
 
 let io;
@@ -18,6 +19,12 @@ export function initializeSocket(httpServer) {
 
   // Handle client connections
   io.on('connection', (socket) => {
+    // Allow clients to join a personal room for direct notifications
+    socket.on('join-user', ({ userId }) => {
+      if (!userId) return;
+      socket.join(`user_${userId}`);
+      console.log(`✓ Socket ${socket.id} joined user room user_${userId}`);
+    });
     console.log(`✓ Socket connected: ${socket.id}`);
 
     // Handle user joining a channel
@@ -72,9 +79,16 @@ export function initializeSocket(httpServer) {
           .toArray();
 
         // Reverse to show oldest first
-        const sortedHistory = history.reverse().map(({ _id, ...msg }) => ({
-          ...msg,
-          createdAt: msg.createdAt.toISOString()
+        const sortedHistory = history.reverse().map((doc) => ({
+          messageId: doc._id.toString(),
+          channelId: doc.channelId,
+          userId: doc.userId,
+          username: doc.username,
+          text: doc.text || '',
+          imagePath: doc.imagePath || null,
+          replyTo: doc.replyTo || null,
+          reactions: doc.reactions || {},
+          createdAt: (doc.createdAt instanceof Date ? doc.createdAt : new Date(doc.createdAt)).toISOString()
         }));
 
         socket.emit('history', sortedHistory);
@@ -99,13 +113,24 @@ export function initializeSocket(httpServer) {
       }
     });
 
-    // Handle new message
+    // Handle new message (supports replyTo, reactions)
     socket.on('message', async (payload) => {
       try {
-        const { channelId, userId, username, text, imagePath } = payload;
+        const { channelId, userId, username, text, imagePath, replyTo = null } = payload;
         console.log(`Message from ${username} in ${channelId}: ${text || '[image]'}`);
 
         const messagesCollection = getCollection('messages');
+
+        // Prevent replying to own message
+        if (replyTo) {
+          try {
+            const parent = await messagesCollection.findOne({ _id: new ObjectId(replyTo) });
+            if (parent && parent.userId === userId) {
+              socket.emit('error', { message: 'Cannot reply to your own message' });
+              return;
+            }
+          } catch {}
+        }
 
         // Create message document
         const newMessage = {
@@ -114,6 +139,8 @@ export function initializeSocket(httpServer) {
           username,
           text: text || '',
           imagePath: imagePath || null,
+          replyTo: replyTo || null,
+          reactions: {}, // emoji -> [userIds]
           createdAt: new Date()
         };
 
@@ -128,6 +155,8 @@ export function initializeSocket(httpServer) {
           username,
           text: text || '',
           imagePath: imagePath || null,
+          replyTo: newMessage.replyTo,
+          reactions: newMessage.reactions,
           createdAt: newMessage.createdAt.toISOString()
         };
 
@@ -137,6 +166,49 @@ export function initializeSocket(httpServer) {
       } catch (error) {
         console.error('Message error:', error);
         socket.emit('error', { message: 'Failed to send message' });
+      }
+    });
+
+    // Handle reactions toggle for a message
+    socket.on('message:reaction', async (payload) => {
+      try {
+        const { messageId, emoji, userId, channelId } = payload || {};
+        if (!messageId || !emoji || !userId || !channelId) {
+          socket.emit('error', { message: 'Invalid reaction payload' });
+          return;
+        }
+
+        const messagesCollection = getCollection('messages');
+        let messageDoc = null;
+        try {
+          messageDoc = await messagesCollection.findOne({ _id: new ObjectId(messageId) });
+        } catch {}
+
+        if (!messageDoc) {
+          socket.emit('error', { message: 'Message not found for reaction' });
+          return;
+        }
+
+        // Disallow reacting to own message
+        if (messageDoc.userId === userId) {
+          socket.emit('error', { message: 'Cannot react to your own message' });
+          return;
+        }
+
+        const reactions = messageDoc.reactions || {};
+        const list = new Set(reactions[emoji] || []);
+        if (list.has(userId)) {
+          list.delete(userId);
+        } else {
+          list.add(userId);
+        }
+        reactions[emoji] = Array.from(list);
+
+        await messagesCollection.updateOne({ _id: messageDoc._id }, { $set: { reactions } });
+        io.to(channelId).emit('message:reactions', { messageId, reactions });
+      } catch (error) {
+        console.error('Reaction error:', error);
+        socket.emit('error', { message: 'Failed to toggle reaction' });
       }
     });
 

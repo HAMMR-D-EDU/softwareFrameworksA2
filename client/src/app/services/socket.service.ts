@@ -9,6 +9,8 @@ export interface ChatMessage {
   username: string;
   text: string;
   imagePath: string | null;
+  replyTo?: string | null;
+  reactions?: { [emoji: string]: string[] };
   createdAt: string;
 }
 
@@ -45,6 +47,20 @@ export class SocketService {
 
     this.socket.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
+    });
+  }
+
+  /** Join personal user room for direct notifications */
+  joinUserRoom(userId: string): void {
+    if (!userId) return;
+    this.socket.emit('join-user', { userId });
+  }
+
+  /** Listen for membership-approved event to refresh groups */
+  onMembershipApproved(): Observable<{ groupId: string }> {
+    return new Observable(observer => {
+      this.socket.on('group:membership-approved', (payload) => observer.next(payload));
+      return () => this.socket.off('group:membership-approved');
     });
   }
 
@@ -109,6 +125,19 @@ export class SocketService {
       return () => {
         this.socket.off('message');
       };
+    });
+  }
+
+  /** Toggle a reaction for the current user */
+  toggleReaction(channelId: string, messageId: string, userId: string, emoji: string): void {
+    this.socket.emit('message:reaction', { channelId, messageId, userId, emoji });
+  }
+
+  /** Listen for reaction updates */
+  onReactions(): Observable<{ messageId: string; reactions: { [emoji: string]: string[] } }> {
+    return new Observable(observer => {
+      this.socket.on('message:reactions', (payload) => observer.next(payload));
+      return () => this.socket.off('message:reactions');
     });
   }
 
@@ -215,6 +244,14 @@ export class SocketService {
       return () => {
         this.socket.off('group-notification');
       };
+    });
+  }
+
+  /** Avatar updated broadcast */
+  onAvatarUpdated(): Observable<{ userId: string; avatarPath: string }> {
+    return new Observable(observer => {
+      this.socket.on('user:avatar-updated', (payload) => observer.next(payload));
+      return () => this.socket.off('user:avatar-updated');
     });
   }
 

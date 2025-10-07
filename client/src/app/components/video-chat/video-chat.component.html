@@ -33,6 +33,9 @@
 
   <!-- Controls -->
   <div class="video-controls">
+    <button class="btn btn-secondary btn-control" (click)="toggleMute()">
+      {{ isAudioEnabled ? 'Mute' : 'Unmute' }}
+    </button>
     <button class="btn btn-danger btn-control" (click)="leave()">
       <i class="fas fa-phone-slash"></i>
     </button>

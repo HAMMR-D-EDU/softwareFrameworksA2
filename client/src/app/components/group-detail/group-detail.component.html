@@ -198,6 +198,8 @@
 
                       <!-- Message Content -->
                       <div class="message-content">
+                    <!-- Reply preview -->
+                    
                     <!-- Text Message -->
                     <p *ngIf="message.text" class="message-text">{{ message.text }}</p>
 
@@ -206,7 +208,17 @@
                          [src]="'https://localhost:3000' + message.imagePath" 
                          alt="Shared image"
                          class="message-image">
-                      </div>
+                    </div>
+                    <div class="message-actions d-flex gap-2 mt-1" *ngIf="!isOwnMessage(message)">
+                      <button class="btn btn-sm" (click)="toggleReaction(message, '👍')">👍 {{ message.reactions?.['👍']?.length || 0 }}</button>
+                      <button class="btn btn-sm" (click)="toggleReaction(message, '❤️')">❤️ {{ message.reactions?.['❤️']?.length || 0 }}</button>
+                      <button class="btn btn-sm" (click)="toggleReaction(message, '😂')">😂 {{ message.reactions?.['😂']?.length || 0 }}</button>
+                    </div>
+                    <div class="message-reactions d-flex gap-2 mt-1" *ngIf="isOwnMessage(message)">
+                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['👍']?.length || 0) > 0">👍 {{ message.reactions?.['👍']?.length }}</span>
+                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['❤️']?.length || 0) > 0">❤️ {{ message.reactions?.['❤️']?.length }}</span>
+                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['😂']?.length || 0) > 0">😂 {{ message.reactions?.['😂']?.length }}</span>
+                    </div>
                     </div>
                     <!-- Avatar on the right for own messages -->
                     <img class="avatar" [src]="getAvatarForUser(message.userId)" alt="avatar" />
@@ -220,11 +232,22 @@
                           <span class="username">{{ message.username }}</span>
                         </div>
                         <div class="message-content">
+                          
                           <p *ngIf="message.text" class="message-text">{{ message.text }}</p>
                           <img *ngIf="message.imagePath" 
                                [src]="'https://localhost:3000' + message.imagePath" 
                                alt="Shared image"
                                class="message-image">
+                        </div>
+                        <div class="message-actions d-flex gap-2 mt-1" *ngIf="!isOwnMessage(message)">
+                          <button class="btn btn-sm" (click)="toggleReaction(message, '👍')">👍 {{ message.reactions?.['👍']?.length || 0 }}</button>
+                          <button class="btn btn-sm" (click)="toggleReaction(message, '❤️')">❤️ {{ message.reactions?.['❤️']?.length || 0 }}</button>
+                          <button class="btn btn-sm" (click)="toggleReaction(message, '😂')">😂 {{ message.reactions?.['😂']?.length || 0 }}</button>
+                        </div>
+                        <div class="message-reactions d-flex gap-2 mt-1" *ngIf="isOwnMessage(message)">
+                          <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['👍']?.length || 0) > 0">👍 {{ message.reactions?.['👍']?.length }}</span>
+                          <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['❤️']?.length || 0) > 0">❤️ {{ message.reactions?.['❤️']?.length }}</span>
+                          <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['😂']?.length || 0) > 0">😂 {{ message.reactions?.['😂']?.length }}</span>
                         </div>
                       </div>
                     </div>

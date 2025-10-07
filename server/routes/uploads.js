@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getCollection } from '../config/db.js';
+import { getIO } from '../config/socket.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -131,6 +132,20 @@ router.post('/upload/avatar/:userId', async (req, res) => {
           { id: userId },
           { $set: { avatarPath } }
         );
+
+        // Broadcast avatar update to all groups the user belongs to
+        try {
+          const groupsCollection = getCollection('groups');
+          const groups = await groupsCollection.find({ memberIds: userId }).toArray();
+          const io = getIO();
+          groups.forEach(g => {
+            io.to(`group_${g.id}`).emit('user:avatar-updated', { userId, avatarPath });
+          });
+          // Also notify the user room for self-updates across tabs
+          io.to(`user_${userId}`).emit('user:avatar-updated', { userId, avatarPath });
+        } catch (e) {
+          console.warn('Avatar update broadcast failed', e?.message);
+        }
 
         return res.json({ ok: true, avatarPath, msg: 'Avatar updated' });
       });

@@ -1,6 +1,6 @@
 import express from 'express';
 import { getCollection, getNextId } from '../config/db.js'; 
-import { notifyGroupAdmins } from '../config/socket.js';
+import { notifyGroupAdmins, getIO } from '../config/socket.js';
 
 const router = express.Router();
 
@@ -423,9 +423,17 @@ router.post('/:groupId/interests/:interestId/approve', async (req, res) => {
       { $addToSet: { memberIds: interest.userId } }
     );
     
-    // Remove the interest request
+  // Remove the interest request
     await groupInterestsCollection.deleteOne({ id: interestId });
     
+  // Notify the accepted user to refresh their groups via personal room
+  try {
+    const io = getIO();
+    io.to(`user_${interest.userId}`).emit('group:membership-approved', { groupId });
+  } catch (e) {
+    console.warn('Socket notify group membership approval failed', e?.message);
+  }
+
     res.json({ ok: true, msg: 'User added to group' });
   } catch (error) {
     console.error('Approve interest error:', error);
