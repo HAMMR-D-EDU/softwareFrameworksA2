@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { StorageService } from './storage.service';
 
 export type Role = 'super' | 'super_admin' | 'groupAdmin' | 'group_admin' | 'user';
@@ -9,12 +10,14 @@ export interface User {
   email?: string;
   roles: Role[];
   groups: string[];
+  avatarPath?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private USERS_KEY = 'app:users' as const;
   private SESSION_KEY = 'app:session' as const;
+  private userSubject = new BehaviorSubject<User | null>(null);
 
   constructor(private store: StorageService) {
     // seed on first run
@@ -26,6 +29,10 @@ export class AuthService {
       this.store.set('app:groups' as any, []);
       this.store.set('app:channels' as any, []);
     }
+    
+    // Initialize user subject with current user
+    const currentUser = this.currentUser();
+    this.userSubject.next(currentUser);
   }
 
   currentUser(): User | null {
@@ -56,9 +63,15 @@ export class AuthService {
 
   logout(): void {
     this.store.remove(this.SESSION_KEY);
+    this.userSubject.next(null);
   }
 
   storeUser(user: any): void {
     this.store.set(this.SESSION_KEY, user);
+    this.userSubject.next(user);
+  }
+
+  onUserChange(): Observable<User | null> {
+    return this.userSubject.asObservable();
   }
 }

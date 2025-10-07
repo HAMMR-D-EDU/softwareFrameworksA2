@@ -25,6 +25,11 @@ export class RegisterComponent {
     this.error = '';
     this.success = '';
     
+    if (!this.username.trim() || !this.password.trim() || !this.email.trim()) {
+      this.error = 'All fields are required';
+      return;
+    }
+    
     this.api.register({ username: this.username, password: this.password, email: this.email }).subscribe({
       next: (result) => {
         if (result.ok) {

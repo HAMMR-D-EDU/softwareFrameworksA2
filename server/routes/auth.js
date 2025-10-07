@@ -32,10 +32,10 @@ router.post('/login', async (req, res) => {
 // POST /api/register
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, email = '' } = req.body || {};
+    const { username, password, email } = req.body || {};
     
-    if (!username || !password) {
-      return res.status(400).json({ ok: false, msg: 'Missing fields' });
+    if (!username || !password || !email) {
+      return res.status(400).json({ ok: false, msg: 'Missing required fields' });
     }
     
     const usersCollection = getCollection('users');
@@ -44,6 +44,12 @@ router.post('/register', async (req, res) => {
     const existingUser = await usersCollection.findOne({ username });
     if (existingUser) {
       return res.status(409).json({ ok: false, msg: 'Username exists' });
+    }
+    
+    // Check if email already exists
+    const existingEmail = await usersCollection.findOne({ email });
+    if (existingEmail) {
+      return res.status(409).json({ ok: false, msg: 'Email already exists' });
     }
     
     // Generate new user ID

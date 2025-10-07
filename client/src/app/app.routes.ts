@@ -15,5 +15,5 @@ export const routes: Routes = [
   { path: 'admin', component: AdminPanelComponent, canActivate: [AuthGuard, RoleGuard] },
   { path: 'group/:gid', component: GroupDetailComponent, canActivate: [AuthGuard] },
   { path: 'video-chat/:channelId', component: VideoChatComponent, canActivate: [AuthGuard] },
-  { path: '**', redirectTo: '' }
+  { path: '**', redirectTo: '' } //redirection to dash
 ];

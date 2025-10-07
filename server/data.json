@@ -4,7 +4,7 @@
       "id": "u_1",
       "username": "super",
       "password": "123",
-      "email": "",
+      "email": "super@macrohard.com",
       "roles": [
         "super",
         "super_admin"
@@ -15,7 +15,7 @@
       "id": "u_2",
       "username": "1",
       "password": "123",
-      "email": "",
+      "email": "admin1@macrohard.com",
       "roles": [
         "user",
         "groupAdmin"
@@ -26,7 +26,7 @@
       "id": "u_3",
       "username": "2",
       "password": "123",
-      "email": "",
+      "email": "user2@macrohard.com",
       "roles": [
         "user"
       ],
@@ -36,7 +36,7 @@
       "id": "u_4",
       "username": "hhhh",
       "password": "1234",
-      "email": "",
+      "email": "user4@macrohard.com",
       "roles": [
         "user"
       ],

@@ -10,7 +10,7 @@ export interface LoginDto {
 export interface RegisterDto { 
   username: string; 
   password: string; 
-  email?: string; 
+  email: string; 
 }
 
 export interface ApiUser { 

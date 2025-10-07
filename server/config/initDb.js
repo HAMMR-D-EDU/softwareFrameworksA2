@@ -102,7 +102,7 @@ async function initializeDatabase() {
         id: 'u_1',
         username: 'super',
         password: '123',
-        email: '',
+        email: 'super@macrohard.com',
         roles: ['super', 'super_admin'],
         groups: []
       });

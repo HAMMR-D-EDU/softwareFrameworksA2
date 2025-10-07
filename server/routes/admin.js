@@ -28,7 +28,7 @@ router.get('/users', async (req, res) => {
 // POST /admin/users
 router.post('/users', async (req, res) => {
   try {
-    const { adminId, username, email = '', password = '123' } = req.body || {};
+    const { adminId, username, email, password = '123' } = req.body || {};
     const usersCollection = getCollection('users');
     
     // Verify admin permissions
@@ -37,14 +37,20 @@ router.post('/users', async (req, res) => {
       return res.status(403).json({ ok: false, msg: 'Only super admins can create users' });
     }
     
-    if (!username) {
-      return res.status(400).json({ ok: false, msg: 'Username is required' });
+    if (!username || !email) {
+      return res.status(400).json({ ok: false, msg: 'Username and email are required' });
     }
     
     // Check if username exists
     const existingUser = await usersCollection.findOne({ username });
     if (existingUser) {
       return res.status(409).json({ ok: false, msg: 'Username exists' });
+    }
+    
+    // Check if email exists
+    const existingEmail = await usersCollection.findOne({ email });
+    if (existingEmail) {
+      return res.status(409).json({ ok: false, msg: 'Email already exists' });
     }
     
     // Generate new user ID

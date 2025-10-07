@@ -41,7 +41,7 @@ export class AdminPanelComponent implements OnInit {
           this.users = users;
         },
         error: () => {
-          // Fallback to non-admin endpoint if needed
+          // Fallback to non-admin endpoint if needed oaky becasue user msut have admin access to see this page
           this.api.getUsers().subscribe({ next: (u) => this.users = u });
         }
       });
@@ -51,12 +51,16 @@ export class AdminPanelComponent implements OnInit {
   createUser() {
     this.adminError = '';
     this.adminSuccess = '';
-    if (!this.currentUser) return;
+    if (!this.currentUser) return; //auth check
     const username = this.newUsername.trim();
     const email = this.newEmail.trim();
-    const password = this.newPassword.trim() || undefined;
+    const password = this.newPassword.trim() || undefined; //maybe update for security reasons
     if (!username) {
       this.adminError = 'Username is required';
+      return;
+    }
+    if (!email) {
+      this.adminError = 'Email is required';
       return;
     }
     this.api.adminCreateUser(this.currentUser.id, username, email || undefined, password).subscribe({
@@ -143,8 +147,6 @@ export class AdminPanelComponent implements OnInit {
       }
     });
   }
-
-  // addUserToGroup and removeUserFromGroup removed per request
 
   loadReports() {
     if (this.currentUser && this.isSuperAdmin()) {
