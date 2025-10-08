@@ -17,3 +17,5 @@ export const routes: Routes = [
   { path: 'video-chat/:channelId', component: VideoChatComponent, canActivate: [AuthGuard] },
   { path: '**', redirectTo: '' } //redirection to dash
 ];
+
+//maps url's to components 

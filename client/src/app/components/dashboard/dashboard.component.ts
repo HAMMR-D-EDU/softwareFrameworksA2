@@ -39,6 +39,9 @@ export class DashboardComponent implements OnInit {
     this.user = this.auth.currentUser();
   }
 
+  /**
+   * Lifecycle: load data and wire up membership approval notifications.
+   */
   ngOnInit() {
     this.loadGroups();
     this.loadAllGroups();
@@ -52,6 +55,9 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  /**
+   * Load groups the current user belongs to.
+   */
   loadGroups() {
     if (this.user) {
       this.api.getUserGroups(this.user.id).subscribe({
@@ -65,6 +71,9 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  /**
+   * Create a new group owned by the current user.
+   */
   createGroup() {
     if (!this.newGroupName.trim()) {
       this.groupError = 'Group name is required';
@@ -91,27 +100,45 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /**
+   * Navigate to a group's detail page.
+   */
   viewGroup(groupId: string) {
     this.router.navigate(['/group', groupId]);
   }
 
+  /**
+   * Navigate to the admin panel.
+   */
   goToAdmin() {
     this.router.navigate(['/admin']);
   }
 
+  /**
+   * Log out and navigate to login.
+   */
   logout() {
     this.auth.logout();
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Whether the current user can create groups.
+   */
   canCreateGroups(): boolean {
     return this.user ? (this.user.roles.includes('super') || this.user.roles.includes('groupAdmin')) : false;
   }
 
+  /**
+   * Whether the current user is super admin.
+   */
   isSuperAdmin(): boolean {
     return this.user ? this.user.roles.includes('super') : false;
   }
 
+  /**
+   * Load all groups (for browsing).
+   */
   loadAllGroups() {
     this.api.getAllGroups().subscribe({
       next: (groups) => {
@@ -123,11 +150,17 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /**
+   * Compute groups user can request to join.
+   */
   get availableGroups(): Group[] {
     if (!this.user) return [];
     return this.allGroups.filter(group => !group.memberIds.includes(this.user!.id));
   }
 
+  /**
+   * Request to join a group; notifies group admins.
+   */
   requestToJoinGroup(groupId: string) {
     if (!this.user) return;
     
@@ -143,6 +176,9 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  /**
+   * Leave a group after confirmation.
+   */
   leaveGroup(groupId: string) {
     if (!this.user) return;
     
@@ -160,6 +196,9 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  /**
+   * Permanently delete the current user's account after confirmation.
+   */
   deleteAccount() {
     if (!this.user) return;
     
@@ -182,6 +221,9 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  /**
+   * Derive the primary role label for the current user.
+   */
   getPrimaryRole(): string {
     if (!this.user || !this.user.roles || this.user.roles.length === 0) {
       return 'User';

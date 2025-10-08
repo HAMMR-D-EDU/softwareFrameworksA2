@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { StorageService } from './storage.service';
 
-export type Role = 'super' | 'super_admin' | 'groupAdmin' | 'group_admin' | 'user';
+export type Role = 'super' | 'super_admin' | 'groupAdmin' | 'group_admin' | 'user'; //figure out whcih group admin is the dud
 export interface User {
   id: string;
   username: string;
@@ -13,16 +13,17 @@ export interface User {
   avatarPath?: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({ providedIn: 'root' }) //app-wide singleton service
 export class AuthService {
-  private USERS_KEY = 'app:users' as const;
-  private SESSION_KEY = 'app:session' as const;
-  private userSubject = new BehaviorSubject<User | null>(null);
+  private USERS_KEY = 'app:users' as const; //key for users in local storage
+  private SESSION_KEY = 'app:session' as const; //key for session in local storage
+  private userSubject = new BehaviorSubject<User | null>(null); //subject for user changes
 
-  constructor(private store: StorageService) {
-    // seed on first run
-    const users = this.store.get<User[]>(this.USERS_KEY, []);
-    if (users.length === 0) {
+//
+  constructor(private store: StorageService) { //inject storage service
+    // seed on first run (if no users, set super user)
+    const users = this.store.get<User[]>(this.USERS_KEY, []); 
+    if (users.length === 0) { //if no users,
       this.store.set(this.USERS_KEY, [
         { id: 'u_1', username: 'super', password: '123', email: '', roles: ['super'], groups: [] }
       ]);
@@ -30,47 +31,29 @@ export class AuthService {
       this.store.set('app:channels' as any, []);
     }
     
-    // Initialize user subject with current user
+    // Initialize user subject with current user and notfiies components of changes
     const currentUser = this.currentUser();
     this.userSubject.next(currentUser);
   }
 
-  currentUser(): User | null {
-    return this.store.get<User | null>(this.SESSION_KEY, null);
-  }
-
-  login(username: string, password: string): boolean {
-    const users = this.store.get<User[]>(this.USERS_KEY, []);
-    const found = users.find(u => u.username === username && u.password === password);
-    if (found) {
-      this.store.set(this.SESSION_KEY, found);
-      return true;
-    }
-    return false;
-  }
-
-  register(newUser: { username: string; password: string; email?: string }): { ok: boolean; msg?: string } {
-    const users = this.store.get<User[]>(this.USERS_KEY, []);
-    if (users.some(u => u.username === newUser.username)) {
-      return { ok: false, msg: 'Username already exists' };
-    }
-    const id = `u_${users.length + 1}`;
-    users.push({ id, username: newUser.username, password: newUser.password, email: newUser.email ?? '', roles: ['user'], groups: [] });
-    this.store.set(this.USERS_KEY, users);
-    return { ok: true };
-    // (No auto-login; navigate to /login after success)
+  
+  //Get the currently authenticated user from LOCAL storage. then will allow access to app used by routegaurds  and components
+  currentUser(): User | null { //boolean return to check if user is logged in
+    return this.store.get<User | null>(this.SESSION_KEY, null); //gets user from local storage
   }
 
   logout(): void {
-    this.store.remove(this.SESSION_KEY);
+    this.store.remove(this.SESSION_KEY); //removes user from session storage
     this.userSubject.next(null);
   }
 
-  storeUser(user: any): void {
-    this.store.set(this.SESSION_KEY, user);
-    this.userSubject.next(user);
+//stores user in locla for auto login
+  storeUser(user: any): void { 
+    this.store.set(this.SESSION_KEY, user); //stores user in session storage to preent refreshes logging people out see if you can chaneg to db down the line not sur ehow to implement
+    this.userSubject.next(user); //notify subs of logged ein user (investigate wha thappens when two brosers runnign)
   }
 
+//subscribtion to user changes for otehr componenets 
   onUserChange(): Observable<User | null> {
     return this.userSubject.asObservable();
   }

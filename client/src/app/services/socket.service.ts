@@ -2,18 +2,22 @@ import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { Observable } from 'rxjs';
 
+//dec
 export interface ChatMessage {
   messageId?: string;
   channelId: string;
   userId: string;
   username: string;
   text: string;
-  imagePath: string | null;
+  imagePath?: string | null;
   replyTo?: string | null;
   reactions?: { [emoji: string]: string[] };
-  createdAt: string;
+  createdAt?: string;
+  timestamp?: string;
+  isSystemMessage?: boolean;
 }
 
+//for join/leave notifs
 export interface UserEvent {
   userId?: string;
   username: string;
@@ -27,6 +31,7 @@ export class SocketService {
   private socket: Socket;
   private serverUrl = 'https://localhost:3000';
 
+//initialises the socket io connection follwoed form lecture toturial
   constructor() {
     // Initialize Socket.IO connection
     this.socket = io(this.serverUrl, {
@@ -38,11 +43,11 @@ export class SocketService {
 
     // Connection event listeners
     this.socket.on('connect', () => {
-      console.log('✓ Connected to Socket.IO server:', this.socket.id);
+      console.log('Connected to Socket.IO server:', this.socket.id);
     });
 
     this.socket.on('disconnect', () => {
-      console.log('✗ Disconnected from Socket.IO server');
+      console.log('Disconnected from Socket.IO server');
     });
 
     this.socket.on('connect_error', (error) => {
@@ -50,13 +55,13 @@ export class SocketService {
     });
   }
 
-  /** Join personal user room for direct notifications */
+//joining user room
   joinUserRoom(userId: string): void {
     if (!userId) return;
     this.socket.emit('join-user', { userId });
   }
 
-  /** Listen for membership-approved event to refresh groups */
+//on membership approved
   onMembershipApproved(): Observable<{ groupId: string }> {
     return new Observable(observer => {
       this.socket.on('group:membership-approved', (payload) => observer.next(payload));
@@ -64,25 +69,16 @@ export class SocketService {
     });
   }
 
-  /**
-   * Join a channel room
-   */
   joinChannel(channelId: string, userId: string, username: string): void {
     this.socket.emit('join', { channelId, userId, username });
     console.log(`Joining channel: ${channelId}`);
   }
 
-  /**
-   * Leave a channel room
-   */
   leaveChannel(channelId: string, username: string): void {
     this.socket.emit('leave', { channelId, username });
     console.log(`Leaving channel: ${channelId}`);
   }
 
-  /**
-   * Send a text message
-   */
   sendMessage(channelId: string, userId: string, username: string, text: string): void {
     this.socket.emit('message', {
       channelId,
@@ -93,9 +89,6 @@ export class SocketService {
     });
   }
 
-  /**
-   * Send an image message
-   */
   sendImageMessage(channelId: string, userId: string, username: string, imagePath: string): void {
     this.socket.emit('message', {
       channelId,
@@ -106,16 +99,12 @@ export class SocketService {
     });
   }
 
-  /**
-   * Send typing indicator
-   */
+//sends typing indicator
   sendTyping(channelId: string, username: string): void {
     this.socket.emit('typing', { channelId, username });
   }
 
-  /**
-   * Observable for incoming messages
-   */
+//observes incoming messages
   onMessage(): Observable<ChatMessage> {
     return new Observable(observer => {
       this.socket.on('message', (message: ChatMessage) => {
@@ -128,12 +117,12 @@ export class SocketService {
     });
   }
 
-  /** Toggle a reaction for the current user */
+//
   toggleReaction(channelId: string, messageId: string, userId: string, emoji: string): void {
     this.socket.emit('message:reaction', { channelId, messageId, userId, emoji });
   }
 
-  /** Listen for reaction updates */
+//observes reaction updates
   onReactions(): Observable<{ messageId: string; reactions: { [emoji: string]: string[] } }> {
     return new Observable(observer => {
       this.socket.on('message:reactions', (payload) => observer.next(payload));
@@ -141,9 +130,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Observable for chat history
-   */
+//observes chat history
   onHistory(): Observable<ChatMessage[]> {
     return new Observable(observer => {
       this.socket.on('history', (messages: ChatMessage[]) => {
@@ -156,9 +143,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Observable for user joined events
-   */
+//observes when other users join the current channel
   onUserJoined(): Observable<UserEvent> {
     return new Observable(observer => {
       this.socket.on('user-joined', (event: UserEvent) => {
@@ -171,9 +156,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Observable for user left events
-   */
+//observes when other users leave the current channel
   onUserLeft(): Observable<UserEvent> {
     return new Observable(observer => {
       this.socket.on('user-left', (event: UserEvent) => {
@@ -186,9 +169,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Observable for typing indicator
-   */
+//observes typing indicators from other users
   onUserTyping(): Observable<{ username: string }> {
     return new Observable(observer => {
       this.socket.on('user-typing', (data) => {
@@ -201,9 +182,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Observable for errors
-   */
+//observes error events from the server socket
   onError(): Observable<{ message: string }> {
     return new Observable(observer => {
       this.socket.on('error', (error) => {
@@ -216,25 +195,19 @@ export class SocketService {
     });
   }
 
-  /**
-   * Join a group room for notifications
-   */
+//joins group room
   joinGroup(groupId: string, userId: string, username: string): void {
     this.socket.emit('join-group', { groupId, userId, username });
     console.log(`Joined group room: ${groupId}`);
   }
 
-  /**
-   * Leave a group room
-   */
+//leaves group room
   leaveGroup(groupId: string, username: string): void {
     this.socket.emit('leave-group', { groupId, username });
     console.log(`Left group room: ${groupId}`);
   }
 
-  /**
-   * Observable for group notifications
-   */
+//observes group notifications
   onGroupNotification(): Observable<any> {
     return new Observable(observer => {
       this.socket.on('group-notification', (notification) => {
@@ -247,7 +220,7 @@ export class SocketService {
     });
   }
 
-  /** Avatar updated broadcast */
+//observes avatar updates
   onAvatarUpdated(): Observable<{ userId: string; avatarPath: string }> {
     return new Observable(observer => {
       this.socket.on('user:avatar-updated', (payload) => observer.next(payload));
@@ -255,25 +228,19 @@ export class SocketService {
     });
   }
 
-  /**
-   * Join a video room
-   */
+//joins video room  
   joinVideoRoom(roomId: string, peerId: string, userId: string, username: string): void {
     this.socket.emit('join-video-room', { roomId, peerId, userId, username });
     console.log(`Joined video room: ${roomId}`);
   }
 
-  /**
-   * Leave a video room
-   */
+//
   leaveVideoRoom(roomId: string, peerId: string, username: string): void {
     this.socket.emit('leave-video-room', { roomId, peerId, username });
     console.log(`Left video room: ${roomId}`);
   }
 
-  /**
-   * Observable for when a user connects to video room
-   */
+//
   onUserConnected(): Observable<{ peerId: string; userId: string; username: string }> {
     return new Observable(observer => {
       this.socket.on('user-connected', (data) => {
@@ -286,9 +253,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Observable for when a user disconnects from video room
-   */
+//
   onUserDisconnected(): Observable<{ peerId: string; username: string }> {
     return new Observable(observer => {
       this.socket.on('user-disconnected', (data) => {
@@ -301,9 +266,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Observable for video status in a channel (inProgress flag)
-   */
+//
   onVideoStatus(): Observable<{ roomId: string; inProgress: boolean }> {
     return new Observable(observer => {
       this.socket.on('video-status', (data: { roomId: string; inProgress: boolean }) => {
@@ -313,9 +276,7 @@ export class SocketService {
     });
   }
 
-  /**
-   * Disconnect socket
-   */
+//
   disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();

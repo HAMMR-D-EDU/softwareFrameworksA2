@@ -16,8 +16,8 @@ import { ImageUploadService } from '../../services/image-upload.service';
   styleUrls: ['./group-detail.component.css']
 })
 export class GroupDetailComponent implements OnInit, OnDestroy {
-  @ViewChild('messagesContainer') messagesContainer!: ElementRef;
-  @ViewChild('fileInput') fileInput!: ElementRef;
+  @ViewChild('messagesContainer') messagesContainer!: ElementRef; //reference to the messagesContainer element used for scrolling sourced from group-detail.component.html
+  @ViewChild('fileInput') fileInput!: ElementRef; //triggers file selection and references it
 
   groupId = '';
   group: Group | null = null;
@@ -65,9 +65,10 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     this.currentUser = this.auth.currentUser();
   }
 
+
   ngOnInit() {
     // React to user avatar changes instantly
-    const userChangeSub = this.auth.onUserChange().subscribe(u => {
+    const userChangeSub = this.auth.onUserChange().subscribe(u => { //listener allows for live updates to profiel pictur eupdates
       if (u) {
         // Update avatar map entry with cache-busting
         const path = u.avatarPath ? (u.avatarPath.startsWith('http') ? u.avatarPath : `https://localhost:3000${u.avatarPath}`) : 'assets/images/a2-logo.png';
@@ -94,10 +95,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Subscribe to chat history
     const historySubscription = this.socketService.onHistory().subscribe(
       (history: ChatMessage[]) => {
-        console.log('📜 Chat history received:', history.length, 'messages');
         history.forEach(msg => {
           if (msg.imagePath) {
-            console.log('🖼️  History image:', 'https://localhost:3000' + msg.imagePath);
+            // Image path available
           }
         });
         this.messages = history;
@@ -109,10 +109,8 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Subscribe to new messages
     const messageSubscription = this.socketService.onMessage().subscribe(
       (message: ChatMessage) => {
-        console.log('📩 New message received:', message);
         if (message.imagePath) {
-          console.log('🖼️  Image path:', message.imagePath);
-          console.log('🔗 Full URL:', 'https://localhost:3000' + message.imagePath);
+          // Image message received
         }
         this.messages.push(message);
         setTimeout(() => this.scrollToBottom(), 100);
@@ -131,7 +129,19 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Subscribe to user joined events
     const joinedSubscription = this.socketService.onUserJoined().subscribe(
       (event) => {
-        console.log(event.message);
+        // Add join notification as a system message
+        const systemMessage: ChatMessage = {
+          messageId: `system-join-${Date.now()}-${Math.random()}`,
+          channelId: this.selectedChannel?.id || '',
+          userId: 'system',
+          username: 'System',
+          text: `👋 ${event.username} joined the channel`,
+          timestamp: new Date().toISOString(),
+          reactions: {},
+          isSystemMessage: true
+        };
+        this.messages.push(systemMessage);
+        setTimeout(() => this.scrollToBottom(), 100);
       }
     );
     this.subscriptions.push(joinedSubscription);
@@ -139,7 +149,19 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Subscribe to user left events
     const leftSubscription = this.socketService.onUserLeft().subscribe(
       (event) => {
-        console.log(event.message);
+        // Add leave notification as a system message
+        const systemMessage: ChatMessage = {
+          messageId: `system-left-${Date.now()}-${Math.random()}`,
+          channelId: this.selectedChannel?.id || '',
+          userId: 'system',
+          username: 'System',
+          text: `👋 ${event.username} left the channel`,
+          timestamp: new Date().toISOString(),
+          reactions: {},
+          isSystemMessage: true
+        };
+        this.messages.push(systemMessage);
+        setTimeout(() => this.scrollToBottom(), 100);
       }
     );
     this.subscriptions.push(leftSubscription);
@@ -178,8 +200,6 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     // Subscribe to group notifications
     const groupNotificationSubscription = this.socketService.onGroupNotification().subscribe(
       (notification: any) => {
-        console.log('Group notification received:', notification);
-        
         if (notification.type === 'new_interest') {
           this.notificationMessage = `📢 ${notification.username} wants to join this group!`;
           this.showNotification = true;
@@ -205,6 +225,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     if (avatarSub) this.subscriptions.push(avatarSub);
   }
 
+  /**
+   * Load group, channels, members, and interests for current user.
+   */
   loadGroupData() {
     // Load group information
     this.api.getUserGroups(this.currentUser?.id || '').subscribe({
@@ -222,6 +245,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Fetch channels visible to the current user in the active group.
+   */
   loadChannels() {
     if (this.group) {
       const uid = this.currentUser?.id || '';
@@ -236,6 +262,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Fetch group members and rebuild the avatar map for quick lookups.
+   */
   loadGroupMembers() {
     if (!this.group) return;
     this.api.getGroupMembers(this.group.id).subscribe({
@@ -254,6 +283,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Fetch current group join-interest requests for admins to manage.
+   */
   loadInterests() {
     if (!this.group) return;
     this.api.getGroupInterests(this.group.id).subscribe({
@@ -266,6 +298,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Create a new channel in the current group.
+   */
   createChannel() {
     if (!this.newChannelName.trim()) {
       this.channelError = 'Channel name is required';
@@ -332,7 +367,11 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** Toggle reaction for a message */
+  /**
+   * Toggle a reaction on a specific message (cannot react to own messages).
+   * @param msg Chat message to react to
+   * @param emoji Emoji string (e.g., "👍")
+   */
   toggleReaction(msg: ChatMessage, emoji: string) {
     if (!this.selectedChannel || !this.currentUser || !msg.messageId) return;
     if (this.isOwnMessage(msg)) return;
@@ -376,8 +415,6 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
 
     this.imageUploadService.uploadImage(this.selectedFile).subscribe({
       next: (response) => {
-        console.log('Upload successful:', response);
-        
         // Send image message via Socket.IO
         this.socketService.sendImageMessage(
           this.selectedChannel!.id,
@@ -420,6 +457,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     this.fileInput.nativeElement.click();
   }
 
+  /**
+   * Upload and set the current user's avatar, then refresh UI mappings.
+   */
   onAvatarSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!this.currentUser) return;
@@ -477,11 +517,17 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Open the ban user form for a specific channel.
+   */
   openBanForm(channel: Channel) {
     this.selectedChannel = channel;
     this.showBanForm = true;
   }
 
+  /**
+   * Ban the selected user from the selected channel.
+   */
   banUser() {
     if (!this.selectedUserId || !this.selectedChannel || !this.currentUser) {
       this.banError = 'Please select a user to ban';
@@ -503,6 +549,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Close the ban form and reset state.
+   */
   cancelBan() {
     this.showBanForm = false;
     this.selectedChannel = null;
@@ -510,10 +559,16 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     this.banError = '';
   }
 
+  /**
+   * Navigate back to the dashboard/home.
+   */
   goBack() {
     this.router.navigate(['/']);
   }
 
+  /**
+   * Compute the current user's role label within the group context.
+   */
   getUserRole(): string {
     if (!this.group || !this.currentUser) return 'Unknown';
     if (this.group.adminIds.includes(this.currentUser.id)) return 'Group Admin';
@@ -521,45 +576,72 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
   }
 
 
+  /**
+   * Whether the user can create channels in this group.
+   */
   canCreateChannels(): boolean {
     if (!this.group || !this.currentUser) return false;
     return this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id);
   }
 
+  /**
+   * Whether the user can ban users in a given channel.
+   */
   canBanUsers(channel: Channel): boolean {
     if (!this.group || !this.currentUser) return false;
     return this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id);
   }
 
+  /**
+   * Whether the given user is a group admin.
+   */
   isGroupAdmin(userId: string): boolean {
     return this.group?.adminIds.includes(userId) || false;
   }
 
+  /**
+   * Whether the current user is banned from a given channel.
+   */
   isBannedFromChannel(channel: Channel): boolean {
     if (!this.currentUser) return false;
     return channel.bannedUserIds.includes(this.currentUser.id);
   }
 
+  /**
+   * Whether the current user can delete the group.
+   */
   canDeleteGroup(): boolean {
     if (!this.group || !this.currentUser) return false;
     return this.currentUser.roles.includes('super') || this.group.creatorId === this.currentUser.id;
   }
 
+  /**
+   * Whether the current user can delete channels.
+   */
   canDeleteChannels(): boolean {
     if (!this.group || !this.currentUser) return false;
     return this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id);
   }
 
+  /**
+   * Whether the current user can remove other users from the group.
+   */
   canRemoveUsers(): boolean {
     if (!this.group || !this.currentUser) return false;
     return this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id);
   }
 
+  /**
+   * Whether the current user can manage join requests for the group.
+   */
   canManageRequests(): boolean {
     if (!this.group || !this.currentUser) return false;
     return this.currentUser.roles.includes('super') || this.group.adminIds.includes(this.currentUser.id);
   }
 
+  /**
+   * Approve a pending interest request and add the user to the group.
+   */
   approveInterest(interestId: string) {
     if (!this.group || !this.currentUser) return;
     this.requestError = '';
@@ -575,6 +657,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Reject a pending interest request.
+   */
   rejectInterest(interestId: string) {
     if (!this.group || !this.currentUser) return;
     this.requestError = '';
@@ -590,18 +675,30 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Whether a member has super-admin privileges.
+   */
   isSuperUser(member: any): boolean {
     return Array.isArray(member?.roles) && (member.roles.includes('super') || member.roles.includes('super_admin'));
   }
 
+  /**
+   * Resolve the avatar URL for a given user ID.
+   */
   getAvatarForUser(userId: string): string {
     return this.userIdToAvatar[userId] || 'assets/images/a2-logo.png';
   }
 
+  /**
+   * Whether the current user is a super admin.
+   */
   isSuperAdmin(): boolean {
     return this.currentUser ? (this.currentUser.roles.includes('super') || this.currentUser.roles.includes('super_admin' as any)) : false;
   }
 
+  /**
+   * Whether the current user can report the specified member.
+   */
   canReportUser(member: any): boolean {
     if (!this.currentUser || !this.group) return false;
     // Only group admins can report users
@@ -611,13 +708,14 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     return isGroupAdmin && isRegularUser;
   }
 
+  /**
+   * Create a report targeting a specific user (by a group admin).
+   */
   reportUser(userId: string) {
     if (!this.currentUser) return;
     
     const member = this.groupMembers.find(m => m.id === userId);
     if (!member) return;
-    
-    console.log('Reporting user:', member.username, 'by:', this.currentUser.username);
     
     this.api.createReport(
       this.currentUser.id,
@@ -626,7 +724,6 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
       'user_report'
     ).subscribe({
       next: () => {
-        console.log('Report created successfully');
         alert(`User ${member.username} reported to super admins`);
       },
       error: (error) => {
@@ -636,6 +733,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Delete the current group after confirmation.
+   */
   deleteGroup() {
     if (!this.group || !this.currentUser) return;
     
@@ -652,6 +752,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Delete a specific channel after confirmation and refresh state.
+   */
   deleteChannel(channelId: string) {
     if (!this.currentUser || !this.group) {
       this.channelError = 'User or group not found';
@@ -691,6 +794,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Remove a user from the group after confirmation.
+   */
   removeUserFromGroup(userId: string) {
     if (!this.group || !this.currentUser) return;
     
@@ -711,6 +817,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Promote a member to group admin after confirmation.
+   */
   promoteToGroupAdmin(userId: string) {
     if (!this.group || !this.currentUser) return;
 
@@ -731,6 +840,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Whether the specified user can be promoted to group admin by current user.
+   */
   canPromoteToGroupAdmin(userId: string): boolean {
     if (!this.group || !this.currentUser) return false;
     // Only super admins or group admins can promote, and only if the user is not already a group admin
@@ -738,6 +850,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
            !this.isGroupAdmin(userId);
   }
 
+  /**
+   * Open the video chat for the selected channel in a new window.
+   */
   startVideoChat() {
     if (this.selectedChannel && this.currentUser) {
       // Navigate to video chat or open in modal
@@ -746,6 +861,9 @@ export class GroupDetailComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Lifecycle: clean up subscriptions and leave joined rooms.
+   */
   ngOnDestroy(): void {
     // Leave current channel if any
     if (this.selectedChannel && this.currentUser) {

@@ -15,3 +15,5 @@ export class RoleGuard implements CanActivate {
     return false;
   }
 } 
+
+//this gaurd is made for route access control only for super or group admin users, if not redirect to dashbaord 

@@ -12,7 +12,7 @@ import { ApiService, ApiUser } from '../../services/api.service';
   styleUrls: ['./admin-panel.component.css']
 })
 export class AdminPanelComponent implements OnInit {
-  users: ApiUser[] = [];
+  users: ApiUser[] = []; 
   reports: any[] = [];
   currentUser: User | null = null;
   adminError = '';
@@ -26,14 +26,15 @@ export class AdminPanelComponent implements OnInit {
     private auth: AuthService,
     private api: ApiService
   ) {
-    this.currentUser = this.auth.currentUser();
+    this.currentUser = this.auth.currentUser(); //user form local (import from auth.service.ts)
   }
-
+//load all users + reports on init
   ngOnInit() {
     this.loadUsers();
     this.loadReports();
   }
 
+//loading users
   loadUsers() {
     if (this.currentUser) {
       this.api.adminGetUsers(this.currentUser.id).subscribe({
@@ -48,6 +49,7 @@ export class AdminPanelComponent implements OnInit {
     }
   }
 
+//creat euser 
   createUser() {
     this.adminError = '';
     this.adminSuccess = '';
@@ -82,6 +84,7 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
+//rmeove  auser after confirmation and refresh the list
   removeUser(userId: string) {
     if (confirm('Are you sure you want to remove this user? This action cannot be undone.')) {
       if (!this.currentUser) return;
@@ -99,6 +102,7 @@ export class AdminPanelComponent implements OnInit {
     }
   }
 
+//promote a user to Super Admin after confirmation
   promoteToSuperAdmin(userId: string) {
     if (confirm('Are you sure you want to promote this user to Super Admin?')) {
       if (!this.currentUser) return;
@@ -116,23 +120,28 @@ export class AdminPanelComponent implements OnInit {
     }
   }
 
+//navigate back to previous page
   goBack() {
     // Navigate back to dashboard
     window.history.back();
   }
 
+//checks for usper admin
   isSuperAdmin(): boolean {
     return this.currentUser ? this.currentUser.roles.includes('super') : false;
   }
 
+//whether target user has super admin role
   isTargetSuper(user: ApiUser): boolean {
     return user.roles.includes('super') || user.roles.includes('super_admin');
   }
 
+//whether target user has any group admin role
   hasGroupAdmin(user: ApiUser): boolean {
     return user.roles.includes('group_admin') || user.roles.includes('groupAdmin');
   }
 
+//promote/demote group admin role for a user
   toggleGroupAdmin(userId: string, promote: boolean) {
     if (!this.currentUser) return;
     this.adminError = '';
@@ -148,6 +157,7 @@ export class AdminPanelComponent implements OnInit {
     });
   }
 
+//load admin-visible reports when super admin
   loadReports() {
     if (this.currentUser && this.isSuperAdmin()) {
       console.log('Loading reports for user:', this.currentUser.id);

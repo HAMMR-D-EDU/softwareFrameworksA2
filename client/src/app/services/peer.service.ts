@@ -1,17 +1,5 @@
-/**
- * PeerService
- * -----------
- * - Creates a PeerJS peer (WebRTC wrapper).
- * - Obtains local media (camera/mic).
- * - Answers incoming calls with our local stream.
- * - Initiates calls to other peers (by peerId) when notified via SocketService.
- *
- * NOTE:
- *   - When running locally, PeerJS server is at: https://localhost:3001 (path '/')
- *   - On ELF, update host to your ELF hostname, set secure: true, port: 3001.
- */
+//files main purpose is facilitating the video call using peer js
 import { Injectable } from '@angular/core';
-// @ts-ignore - PeerJS has TypeScript compatibility issues
 import Peer from 'peerjs';
 
 @Injectable({
@@ -26,10 +14,11 @@ export class PeerService {
     return this._id;
   }
 
-  async initPeer(): Promise<string> {
-    // IMPORTANT: secure must be true when serving over HTTPS
+  //initalisation to the peer js server and creates unique id
+  async initPeer(): Promise<string> { //stirng is peerID (for the server to identify the user)
+    // IMPORTANT: secure must be true when serving over HTTPS will need to do this manually in broswee
     this.peer = new Peer('', {
-      host: 'localhost', // change to 'sXXXXXX.elf.ict.griffith.edu.au' on ELF
+      host: 'localhost', // change to 'sXXXXXX.elf.ict.griffith.edu.au' on ELF if oyu cna figure it out
       port: 3001,
       path: '/',
       secure: true,
@@ -37,12 +26,12 @@ export class PeerService {
 
     // Wait until the server assigns us an ID
     this._id = await new Promise<string>((resolve) => {
-      this.peer!.on('open', (id: string) => resolve(id));
+      this.peer!.on('open', (id: string) => resolve(id));//lsiten for open event on peerjs, when open is triggered, resolve the promise with the id
     });
 
     // Handle incoming calls (we will answer with our local stream)
-    this.peer.on('call', (call: any) => {
-      if (!this.localStream) return; // Should be set by getLocalStream() before
+    this.peer.on('call', (call: any) => { //listen for call event on peerjs, when call is triggered, answer the call with the local stream
+      if (!this.localStream) return;
       call.answer(this.localStream);
       // The component will attach 'stream' event listener on the returned call
     });
@@ -50,7 +39,8 @@ export class PeerService {
     return this._id;
   }
 
-  async getLocalStream(): Promise<MediaStream> {
+  //access to camera and microphone and creates stream
+  async getLocalStream(): Promise<MediaStream> { //gets the local stream
     // Ask for camera and microphone
     this.localStream = await navigator.mediaDevices.getUserMedia({
       video: true,
@@ -59,29 +49,24 @@ export class PeerService {
     return this.localStream;
   }
 
+//calls the peer with the local stream | intiates call
   call(peerId: string): any {
     if (!this.localStream || !this.peer) return null;
     const call = this.peer.call(peerId, this.localStream);
     return call || null;
   }
 
-  /**
-   * Get the peer instance for direct event handling
-   */
+//gets the peer instance
   getPeer(): Peer | null {
     return this.peer;
   }
 
-  /**
-   * Get the local stream
-   */
+//gets the local stream
   getLocalStreamSync(): MediaStream | null {
     return this.localStream;
   }
 
-  /**
-   * Disconnect and cleanup
-   */
+//`disconects from peerjs and stops the local stream
   disconnect(): void {
     if (this.peer) {
       this.peer.destroy();

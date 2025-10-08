@@ -187,9 +187,20 @@
                 <!-- Chat Messages -->
                 <div *ngFor="let message of messages" 
                      class="message" 
-                     [ngClass]="{'own-message': isOwnMessage(message), 'other-message': !isOwnMessage(message)}">
-                  <!-- Own message: content left, avatar right -->
-                  <div class="d-flex align-items-start gap-2" *ngIf="isOwnMessage(message); else otherMsg">
+                     [ngClass]="{'own-message': isOwnMessage(message), 'other-message': !isOwnMessage(message), 'system-message': message.isSystemMessage}">
+                  
+                  <!-- System Message (Join/Leave notifications) -->
+                  <div *ngIf="message.isSystemMessage" class="system-message-container">
+                    <div class="system-message">
+                      <span class="system-text">{{ message.text }}</span>
+                      <span class="system-time">{{ formatTime(message.timestamp || message.createdAt || '') }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Regular Messages -->
+                  <div *ngIf="!message.isSystemMessage">
+                    <!-- Own message: content left, avatar right -->
+                    <div class="d-flex align-items-start gap-2" *ngIf="isOwnMessage(message); else otherMsg">
                     <div class="flex-grow-1">
                       <!-- Username -->
                       <div class="message-header" [ngClass]="{'own-message-header': isOwnMessage(message), 'other-message-header': !isOwnMessage(message)}">
@@ -208,16 +219,17 @@
                          [src]="'https://localhost:3000' + message.imagePath" 
                          alt="Shared image"
                          class="message-image">
+                    <!-- Reactions received (for own messages) placed directly under content -->
+                    <div class="message-reactions d-flex gap-2 mt-1" *ngIf="isOwnMessage(message)">
+                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['👍']?.length || 0) > 0">👍 {{ message.reactions?.['👍']?.length }}</span>
+                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['❤️']?.length || 0) > 0">❤️ {{ message.reactions?.['❤️']?.length }}</span>
+                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['😂']?.length || 0) > 0">😂 {{ message.reactions?.['😂']?.length }}</span>
+                    </div>
                     </div>
                     <div class="message-actions d-flex gap-2 mt-1" *ngIf="!isOwnMessage(message)">
                       <button class="btn btn-sm" (click)="toggleReaction(message, '👍')">👍 {{ message.reactions?.['👍']?.length || 0 }}</button>
                       <button class="btn btn-sm" (click)="toggleReaction(message, '❤️')">❤️ {{ message.reactions?.['❤️']?.length || 0 }}</button>
                       <button class="btn btn-sm" (click)="toggleReaction(message, '😂')">😂 {{ message.reactions?.['😂']?.length || 0 }}</button>
-                    </div>
-                    <div class="message-reactions d-flex gap-2 mt-1" *ngIf="isOwnMessage(message)">
-                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['👍']?.length || 0) > 0">👍 {{ message.reactions?.['👍']?.length }}</span>
-                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['❤️']?.length || 0) > 0">❤️ {{ message.reactions?.['❤️']?.length }}</span>
-                      <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['😂']?.length || 0) > 0">😂 {{ message.reactions?.['😂']?.length }}</span>
                     </div>
                     </div>
                     <!-- Avatar on the right for own messages -->
@@ -244,14 +256,10 @@
                           <button class="btn btn-sm" (click)="toggleReaction(message, '❤️')">❤️ {{ message.reactions?.['❤️']?.length || 0 }}</button>
                           <button class="btn btn-sm" (click)="toggleReaction(message, '😂')">😂 {{ message.reactions?.['😂']?.length || 0 }}</button>
                         </div>
-                        <div class="message-reactions d-flex gap-2 mt-1" *ngIf="isOwnMessage(message)">
-                          <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['👍']?.length || 0) > 0">👍 {{ message.reactions?.['👍']?.length }}</span>
-                          <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['❤️']?.length || 0) > 0">❤️ {{ message.reactions?.['❤️']?.length }}</span>
-                          <span class="badge bg-light text-dark" *ngIf="(message.reactions?.['😂']?.length || 0) > 0">😂 {{ message.reactions?.['😂']?.length }}</span>
-                        </div>
                       </div>
                     </div>
                   </ng-template>
+                  </div> <!-- End of regular messages div -->
                 </div>
 
                 <!-- Typing Indicator -->

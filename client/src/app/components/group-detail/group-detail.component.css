@@ -746,6 +746,49 @@
   display: block;
 }
 
+/* System Messages (Join/Leave notifications) */
+.system-message-container {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.system-message {
+  background: rgba(176, 106, 252, 0.1);
+  border: 1px solid rgba(176, 106, 252, 0.3);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 80%;
+  animation: fadeInScale 0.5s ease;
+}
+
+.system-text {
+  color: #6264a7;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-style: italic;
+}
+
+.system-time {
+  color: #999;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .typing-indicator {
   padding: 0.5rem 1rem;
   color: #666;

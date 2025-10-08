@@ -60,6 +60,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     private router: Router
   ) {}
 
+  /**
+   * Lifecycle: initialize media, PeerJS, and Socket.IO signaling room.
+   */
   async ngOnInit(): Promise<void> {
     try {
       // Get channel ID from route
@@ -113,6 +116,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Lifecycle: clean up sockets, peers, calls, and subscriptions.
+   */
   ngOnDestroy(): void {
     try {
       if (this.isConnected) {
@@ -132,6 +138,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     this.peerService.disconnect();
   }
 
+  /**
+   * Initiate an outbound call to a newly connected peer and track the call.
+   */
   private handleUserConnected(data: { peerId: string; userId: string; username: string }) {
     console.log('User connected:', data);
     
@@ -145,6 +154,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     this.calls.push(call);
   }
 
+  /**
+   * Tear down calls/streams when a peer disconnects.
+   */
   private handleUserDisconnected(data: { peerId: string; username: string }) {
     console.log('User disconnected:', data);
     
@@ -161,6 +173,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     this.removeRemoteStreamByPeerId(data.peerId);
   }
 
+  /**
+   * Attach a MediaStream to a video element with options.
+   */
   private attachStream(videoEl: HTMLVideoElement, stream: MediaStream, opts?: { mute?: boolean }) {
     videoEl.srcObject = stream;
     videoEl.autoplay = true;
@@ -168,6 +183,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     if (opts?.mute) videoEl.muted = true; // Avoid audio feedback loop for local video
   }
 
+  /**
+   * Add a remote stream if not already present (by video track id).
+   */
   private addRemoteStream(stream: MediaStream) {
     // Prevent duplicates: check by first video track ID
     const id = stream.getVideoTracks()[0]?.id || '';
@@ -179,6 +197,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Remove streams whose video track IDs match the provided list.
+   */
   private removeRemoteStreamByTrack(trackIds: string[]) {
     this.remoteStreams = this.remoteStreams.filter((s) => {
       const vidId = s.getVideoTracks()[0]?.id || '';
@@ -186,15 +207,24 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Remove streams associated with a given peer (best-effort heuristic).
+   */
   private removeRemoteStreamByPeerId(peerId: string) {
     // This is a simplified approach - in practice you'd track peerId with streams
     this.remoteStreams = [];
   }
 
+  /**
+   * Remove closed PeerJS calls from our tracking list.
+   */
   private pruneClosedCalls() {
     this.calls = this.calls.filter((c) => c.open);
   }
 
+  /**
+   * Leave the video room, close the window if possible, and navigate home.
+   */
   leave() {
     // Clean up and navigate/close
     this.ngOnDestroy();
@@ -204,6 +234,9 @@ export class VideoChatComponent implements OnInit, OnDestroy {
     this.router.navigate(['/']);
   }
 
+  /**
+   * Toggle the local audio track enabled state.
+   */
   toggleMute() {
     try {
       const track = this.localStream?.getAudioTracks()[0];

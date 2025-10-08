@@ -18,19 +18,31 @@ export class NavbarComponent {
     private imageUploadService: ImageUploadService
   ) {}
 
+  /**
+   * Current logged-in user getter.
+   */
   get user() {
     return this.auth.currentUser();
   }
 
+  /**
+   * Log out and navigate to the login page.
+   */
   logout() {
     this.auth.logout();
     this.router.navigate(['/login']);
   }
 
+  /**
+   * Whether the current user is a super admin.
+   */
   isSuperAdmin(): boolean {
     return this.user ? this.user.roles.includes('super') : false;
   }
 
+  /**
+   * Resolve the avatar URL for the current user (with server prefix if needed).
+   */
   getAvatarUrl(): string {
     const user = this.user;
     if (user && user.avatarPath) {
@@ -41,6 +53,9 @@ export class NavbarComponent {
     return 'assets/images/a2-logo.png';
   }
 
+  /**
+   * Upload a new avatar for the current user and store updated session.
+   */
   onAvatarSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (!this.user) return;

@@ -9,7 +9,7 @@ export interface UploadResponse {
     size: number;
     path: string;
   };
-  numberOfImages: number;
+  numberOfImages: number; //shoudl always be 1
   message: string;
 }
 
@@ -21,23 +21,19 @@ export class ImageUploadService {
 
   constructor(private http: HttpClient) {}
 
-  /**
-   * Upload image file using FormData
-   * Follows the ZZIMAGEUPLAOD pattern
-   */
+//follows lecture toturial
+//image uplaod method
   uploadImage(file: File): Observable<UploadResponse> {
     const formData = new FormData();
     formData.append('image', file, file.name);
     
-    return this.http.post<UploadResponse>(`${this.apiUrl}/upload`, formData);
+    return this.http.post<UploadResponse>(`${this.apiUrl}/upload`, formData); //post to uplaod route await for response
   }
 
-  /**
-   * Upload avatar image for a specific user
-   */
+//profile picture uplaod method
   uploadAvatar(userId: string, file: File): Observable<{ ok: boolean; avatarPath: string; msg: string }> {
     const formData = new FormData();
     formData.append('image', file, file.name);
-    return this.http.post<{ ok: boolean; avatarPath: string; msg: string }>(`${this.apiUrl}/upload/avatar/${userId}`, formData);
+    return this.http.post<{ ok: boolean; avatarPath: string; msg: string }>(`${this.apiUrl}/upload/avatar/${userId}`, formData); //same await and set to db
   }
 }

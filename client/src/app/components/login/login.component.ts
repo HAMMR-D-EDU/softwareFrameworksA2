@@ -17,13 +17,16 @@ export class LoginComponent {
   password = '';
   error = '';
 
-  constructor(private auth: AuthService, private api: ApiService, private router: Router) {}
+  constructor(private auth: AuthService, private api: ApiService, private router: Router) {} //contructor defines vars used in submit method
 
+  /**
+   * Attempt to log in with provided credentials and navigate to dashboard on success.
+   */
   submit() {
-    this.error = '';
+    this.error = ''; //clears error message
     this.api.login({ username: this.username, password: this.password }).subscribe({
       next: (user) => {
-        // Store the user in LocalStorage for the frontend
+        // Store the user for the frontend
         this.auth.storeUser(user);
         this.router.navigateByUrl('/');
       },

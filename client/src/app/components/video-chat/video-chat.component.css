@@ -22,12 +22,13 @@
 }
 
 .video-grid {
-  flex: 1;
+  flex: 0 1 auto;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 15px;
   padding: 10px;
-  overflow: hidden;
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
 }
 
 .video-item {
